@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.hci.sroettering.spotifyrc.MainActivity"
+    android:background="#ffffff">
+
+    <android.support.v4.view.ViewPager
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/pager"
+        android:layout_width="fill_parent"
+        android:layout_height="350dp">
+
+        <android.support.v4.view.PagerTabStrip
+            android:id="@+id/pager_title_strip"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top"
+            android:textColor="#fff"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:background="@color/primary"
+            android:touchscreenBlocksFocus="false" />
+
+    </android.support.v4.view.ViewPager>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/primary"
+        android:layout_below="@+id/pager">
+
+        <ToggleButton
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:id="@+id/btn_play"
+            android:src="@drawable/material_play_arrow_24dp"
+            android:layout_centerVertical="true"
+            android:layout_centerHorizontal="true"
+            android:textOn=""
+            android:textOff=""
+            android:background="@null"
+            android:button="@drawable/play_pause"
+            android:checked="false"
+            android:foregroundGravity="center_horizontal"
+            android:layout_marginRight="6dp"
+            android:onClick="onPlayBtnClick"/>
+
+        <ImageButton
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:id="@+id/btn_prev"
+            android:src="@drawable/material_skip_previous_24dp"
+            android:layout_alignTop="@+id/btn_play"
+            android:layout_toStartOf="@+id/btn_play"
+            android:background="@color/primary"
+            android:layout_marginRight="6dp"
+            android:onClick="prevTrack"/>
+
+        <ImageButton
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:id="@+id/btn_next"
+            android:layout_alignBottom="@+id/btn_play"
+            android:layout_toEndOf="@+id/btn_play"
+            android:src="@drawable/material_skip_next_24dp"
+            android:background="@color/primary"
+            android:layout_marginRight="6dp"
+            android:onClick="nextTrack"/>
+
+        <ToggleButton
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:id="@+id/btn_shuffle"
+            android:textOn=""
+            android:textOff=""
+            android:background="@null"
+            android:button="@drawable/shuffle"
+            android:layout_marginRight="6dp"
+            android:layout_toStartOf="@+id/btn_prev"
+            android:onClick="onShuffleBtnClick"
+            android:layout_centerVertical="true" />
+
+        <SeekBar
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/seekBar_track"
+            android:thumbTint="@color/icons"
+            android:progressTint="@color/icons"
+            android:max="100"
+            android:layout_below="@+id/space"
+            android:layout_toEndOf="@+id/tv_cur_position" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Hardwell"
+            android:id="@+id/tv_cur_artist"
+            android:textSize="22dp"
+            android:textColor="@color/icons"
+            android:layout_alignParentTop="true"
+            android:layout_alignStart="@+id/btn_shuffle" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="Call me a Spaceman testestestestests"
+            android:id="@+id/tv_cur_track"
+            android:textSize="20dp"
+            android:textColor="@color/icons"
+            android:layout_below="@+id/tv_cur_artist"
+            android:layout_alignStart="@+id/tv_cur_artist"
+            android:layout_above="@+id/btn_play" />
+
+        <Space
+            android:layout_width="20dp"
+            android:layout_height="30dp"
+            android:layout_below="@+id/btn_play"
+            android:id="@+id/space"
+            android:layout_alignParentBottom="false"
+            android:layout_alignParentStart="true"
+            android:layout_alignEnd="@+id/seekBar_track" />
+
+        <TextView
+            android:layout_width="50dp"
+            android:layout_height="wrap_content"
+            android:text="00:00"
+            android:id="@+id/tv_cur_position"
+            android:layout_below="@+id/space"
+            android:layout_alignParentStart="true"
+            android:layout_marginLeft="6dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="00:00"
+            android:id="@+id/tv_cur_duration"
+            android:layout_below="@+id/space"
+            android:layout_alignParentEnd="true"
+            android:layout_marginRight="6dp"
+            android:layout_marginLeft="6dp" />
+
+    </RelativeLayout>
+
+</RelativeLayout>

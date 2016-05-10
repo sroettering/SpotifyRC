@@ -1,6 +1,5 @@
 package com.hci.sroettering.spotifyrc;
 
-import android.app.ActionBar;
 import android.content.Intent;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.view.ViewPager;
@@ -8,9 +7,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ListView;
-import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.ToggleButton;
@@ -63,7 +60,7 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
         artistTV.setText(artist.substring(0, Math.min(20, artist.length())) + " -");
         TextView trackTV = (TextView)findViewById(R.id.tv_cur_track);
         trackTV.setText(track.substring(0, Math.min(100, track.length())));
-        TextView durationTV = (TextView)findViewById(R.id.tv_row_duration);
+        TextView durationTV = (TextView)findViewById(R.id.tv_cur_duration);
         durationTV.setText(formatMilliseconds(length));
 
         seekBar.setMax(10000);
@@ -136,7 +133,7 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
     }
 
     private String formatMilliseconds(int millis) {
-        String duration = String.format("%d:%d",
+        String duration = String.format("%02d:%02d",
                 TimeUnit.MILLISECONDS.toMinutes(millis),
                 TimeUnit.MILLISECONDS.toSeconds(millis) -
                         TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis))

@@ -32,6 +32,7 @@ import kaaes.spotify.webapi.android.models.Pager;
 import kaaes.spotify.webapi.android.models.Playlist;
 import kaaes.spotify.webapi.android.models.PlaylistSimple;
 import kaaes.spotify.webapi.android.models.PlaylistTrack;
+import kaaes.spotify.webapi.android.models.PlaylistsPager;
 import kaaes.spotify.webapi.android.models.SavedAlbum;
 import kaaes.spotify.webapi.android.models.SavedTrack;
 import kaaes.spotify.webapi.android.models.Track;
@@ -288,25 +289,9 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
     }
 
     public void loadPlaylist(int pos) {
-        String owner = ldc.getPlaylists().get(pos).owner.id;
-        String uri = ldc.getPlaylists().get(pos).id;
-
-        //retrieve playlist tracks from spotify
-        spotify.getPlaylist(owner, uri, new Callback<Playlist>() {
-            @Override
-            public void success(Playlist playlist, Response response) {
-                ArrayList<TrackSimple> tracks = new ArrayList<TrackSimple>();
-                for (PlaylistTrack ptrack : playlist.tracks.items) {
-                    tracks.add(ptrack.track);
-                }
-                play(tracks);
-            }
-
-            @Override
-            public void failure(RetrofitError error) {
-                Log.d("SpotifyManager", "Error retrieving tracks for playlist: " + error.getMessage());
-            }
-        });
+        String ownerID = ldc.getPlaylists().get(pos).owner.id;
+        String playlistID = ldc.getPlaylists().get(pos).id;
+        loadPlaylistTracks(ownerID, playlistID);
     }
 
     public void loadSong(int pos) {
@@ -338,7 +323,41 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
     }
 
     public void loadCategory(int pos) {
-        // TODO categories are divided into different playlists. add some functionality to show and select them
+        String categoryID = ldc.getCategories().get(pos).id;
+        spotify.getPlaylistsForCategory(categoryID, null, new Callback<PlaylistsPager>() {
+
+            @Override
+            public void success(PlaylistsPager playlistsPager, Response response) {
+                PlaylistSimple playlist = playlistsPager.playlists.items.get(0); // play first playlist for simplicity
+                Log.d("SpotifyManager", "Loading playlist: " + playlist.name);
+                loadPlaylistTracks(playlist.owner.id, playlist.id);
+            }
+
+            @Override
+            public void failure(RetrofitError error) {
+                Log.d("SpotifyManager", "Failed to retrieve Playlists for selected Category");
+            }
+        });
+
+    }
+
+    //retrieve playlist tracks from spotify
+    private void loadPlaylistTracks(String ownerID, String playlistID) {
+        spotify.getPlaylist(ownerID, playlistID, new Callback<Playlist>() {
+            @Override
+            public void success(Playlist playlist, Response response) {
+                ArrayList<TrackSimple> tracks = new ArrayList<TrackSimple>();
+                for (PlaylistTrack ptrack : playlist.tracks.items) {
+                    tracks.add(ptrack.track);
+                }
+                play(tracks);
+            }
+
+            @Override
+            public void failure(RetrofitError error) {
+                Log.d("SpotifyManager", "Error retrieving tracks for playlist: " + error.getMessage());
+            }
+        });
     }
 
 
@@ -378,7 +397,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
         Log.d("SpotifyManager", "Playback event received: " + eventType.name());
         if(eventType.name().equals("TRACK_CHANGED")) {
             TrackSimple track = currentQueue.get(state.trackUri);
-            ((MainActivity) mContext).updateCurrentTrackInfo(track.artists.get(0).name, track.name, (int)(track.duration_ms/1000));
+            ((MainActivity) mContext).updateCurrentTrackInfo(track.artists.get(0).name, track.name, (int)track.duration_ms);
         }
         if(eventType.name().equals("PLAY")) {
             ((MainActivity) mContext).updatePlayButton(true);

@@ -42,7 +42,7 @@ public class SongsListAdapter extends ArrayAdapter<SavedTrack> {
         tv_artist.setText(data.get(position).track.artists.get(0).name);
 
         long millis = data.get(position).track.duration_ms;
-        String duration = String.format("%d:%d",
+        String duration = String.format("%d:%02d",
                 TimeUnit.MILLISECONDS.toMinutes(millis),
                 TimeUnit.MILLISECONDS.toSeconds(millis) -
                         TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis))

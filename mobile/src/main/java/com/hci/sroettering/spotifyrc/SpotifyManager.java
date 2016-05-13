@@ -69,6 +69,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
     private SpotifyService spotify = null;
     private Player mPlayer;
     private PlayerState playerState;
+    private boolean isShuffle;
 
     // List Info
     private ListDataContainer ldc;
@@ -81,6 +82,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
 
     private SpotifyManager() {
         spotifyApi = new SpotifyApi();
+        isShuffle = false;
         ldc = new ListDataContainer();
         currentQueue = new HashMap<String, TrackSimple>();
     }
@@ -143,6 +145,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
                     mPlayer = player;
                     mPlayer.addConnectionStateCallback(SpotifyManager.this);
                     mPlayer.addPlayerNotificationCallback(SpotifyManager.this);
+                    mPlayer.setShuffle(isShuffle);
                 }
 
                 @Override
@@ -247,6 +250,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
                 currentQueue.put(track.uri, track);
             }
             mPlayer.play(keySetToList());
+            mPlayer.setShuffle(isShuffle);
             startTimer();
         }
     }
@@ -283,8 +287,9 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
     }
 
     public void shuffle(boolean isEnabled) {
+        isShuffle = isEnabled;
         if(mPlayer.isInitialized() && playerState != null && playerState.activeDevice) {
-            mPlayer.setShuffle(isEnabled);
+            mPlayer.setShuffle(isShuffle);
         }
     }
 

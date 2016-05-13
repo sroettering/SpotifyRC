@@ -15,7 +15,7 @@
         android:layout_alignParentTop="true"
         android:layout_marginTop="0dp"
         android:layout_marginRight="6dp"
-        android:background="@color/primary_light" />
+        android:background="#ffffff" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -28,7 +28,7 @@
         android:textSize="20dp"
         android:gravity="center_vertical"
         android:textColor="@color/primary_text"
-        android:background="@color/primary_light" />
+        android:background="#ffffff" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -40,7 +40,7 @@
         android:layout_alignEnd="@+id/tv_row_name"
         android:gravity="center_vertical"
         android:textColor="@color/primary_text"
-        android:background="@color/primary_light"
+        android:background="#ffffff"
         android:textSize="16dp" />
 
 </RelativeLayout>

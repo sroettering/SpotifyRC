@@ -13,7 +13,7 @@ import java.util.List;
  */
 public class PagerListFragmentAdapter extends FragmentPagerAdapter {
 
-    final int PAGE_COUNT = 5;
+    private final int PAGE_COUNT = 5;
 
     private FragmentManager fragmentManager;
 

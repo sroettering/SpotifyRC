@@ -55,7 +55,9 @@ public class MiddleListViewAdapter extends WearableListView.Adapter {
 
     // Provide a reference to the type of views you're using
     public static class ItemViewHolder extends WearableListView.ViewHolder {
+
         private TextView textView;
+
         public ItemViewHolder(View itemView) {
             super(itemView);
             // find the text view within the custom item's layout

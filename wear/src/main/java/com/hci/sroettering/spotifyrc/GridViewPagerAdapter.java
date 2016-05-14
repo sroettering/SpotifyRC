@@ -3,12 +3,13 @@ package com.hci.sroettering.spotifyrc;
 import android.content.Context;
 import android.support.wearable.view.GridPagerAdapter;
 import android.support.wearable.view.WearableListView;
-import android.text.Layout;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import com.hci.sroettering.spotifyrc.adapters.MiddleListViewAdapter;
+import com.hci.sroettering.spotifyrc.adapters.RightListViewAdapter;
 
 import java.util.List;
 
@@ -26,6 +27,7 @@ public class GridViewPagerAdapter extends GridPagerAdapter {
     private WearableListView middleListView;
     private WearableListView rightListView;
     private MiddleListViewAdapter middleListViewAdapter;
+    private RightListViewAdapter rightListViewAdapter;
 
     public GridViewPagerAdapter(Context context, MainActivity activity) {
         super();
@@ -46,17 +48,28 @@ public class GridViewPagerAdapter extends GridPagerAdapter {
 
     @Override
     public Object instantiateItem(ViewGroup viewGroup, int row, int col) {
-        //if(col == 1) {
+        if(col == 1) {
             middleListViewAdapter = new MiddleListViewAdapter(mContext);
             LayoutInflater inflater = mActivity.getLayoutInflater();
-            View view = inflater.inflate(R.layout.listview_layout, viewGroup, false);
+            View view = inflater.inflate(R.layout.listview_middle_layout, viewGroup, false);
             middleListView = (WearableListView) view.findViewById(R.id.middleListView);
             middleListView.setAdapter(middleListViewAdapter);
             middleListView.setGreedyTouchMode(true);
             viewGroup.addView(middleListView);
             return middleListView;
-        //}
-        //return null;
+        } else if(col == 2) {
+            rightListViewAdapter = new RightListViewAdapter(mContext);
+            LayoutInflater inflater = mActivity.getLayoutInflater();
+            View view = inflater.inflate(R.layout.listview_right_layout, viewGroup, false);
+            rightListView = (WearableListView) view.findViewById(R.id.rightListView);
+            rightListView.setAdapter(rightListViewAdapter);
+            rightListView.setGreedyTouchMode(true);
+            TextView title = (TextView) view.findViewById(R.id.list_title);
+            title.setText("Title");
+            viewGroup.addView(view);
+            return view;
+        }
+        return null;
         /*
             ImageView imageView;
             imageView = new ImageView(mContext);

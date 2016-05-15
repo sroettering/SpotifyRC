@@ -2,16 +2,10 @@ package com.hci.sroettering.spotifyrc;
 
 import android.os.Bundle;
 import android.support.wearable.activity.WearableActivity;
-import android.support.wearable.view.BoxInsetLayout;
 import android.support.wearable.view.DotsPageIndicator;
 import android.support.wearable.view.GridViewPager;
-import android.util.Log;
 import android.view.View;
-import android.widget.TextView;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends WearableActivity {
@@ -25,8 +19,8 @@ public class MainActivity extends WearableActivity {
         setContentView(R.layout.activity_main);
         setAmbientEnabled();
 
-        pagerAdapter = new GridViewPagerAdapter(this, this);
         pager = (GridViewPager) findViewById(R.id.pager);
+        pagerAdapter = new GridViewPagerAdapter(this, this, pager);
         pager.setAdapter(pagerAdapter);
         pager.setOffscreenPageCount(2);
         pager.setCurrentItem(0, 2);
@@ -61,6 +55,32 @@ public class MainActivity extends WearableActivity {
         }
     }
 
+    // onClick Methods
+
+    public void onPrevBtnClicked(View v) {
+
+    }
+
+    public void onPlayBtnClicked(View v) {
+
+    }
+
+    public void onNextBtnClicked(View v) {
+
+    }
+
+    public void onVolumeDownBtnClicked(View v) {
+
+    }
+
+    public void onShuffleBtnClicked(View v) {
+
+    }
+
+    public void onVolumeUpBtnClicked(View v) {
+
+    }
+
     public static String formatMilliseconds(int millis) {
         String duration = String.format("%02d:%02d",
                 TimeUnit.MILLISECONDS.toMinutes(millis),
@@ -69,4 +89,5 @@ public class MainActivity extends WearableActivity {
         );
         return duration;
     }
+
 }

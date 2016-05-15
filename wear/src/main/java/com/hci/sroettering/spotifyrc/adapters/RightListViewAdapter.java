@@ -8,8 +8,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.hci.sroettering.spotifyrc.MainActivity;
 import com.hci.sroettering.spotifyrc.R;
+import com.hci.sroettering.spotifyrc.RightListDataItem;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,14 +27,6 @@ public class RightListViewAdapter extends WearableListView.Adapter {
         mContext = context;
         mInflater = LayoutInflater.from(mContext);
         data = new ArrayList<RightListDataItem>();
-        createDummyData();
-    }
-
-    private void createDummyData() {
-        for(int i = 0; i < 10; i++) {
-            RightListDataItem item = new RightListDataItem("Item " + i, -1, -1);
-            data.add(item);
-        }
     }
 
     @Override
@@ -90,25 +82,5 @@ public class RightListViewAdapter extends WearableListView.Adapter {
         }
     }
 
-    // Special object containing the listdata
-    public class RightListDataItem {
-
-        private String text;
-        private String duration;
-        private int parentCategory;
-
-        public RightListDataItem(String t, int d, int parent) {
-            this.text = t;
-            if(d != -1) {
-                this.duration = MainActivity.formatMilliseconds(d);
-            } else {
-                this.duration = "";
-            }
-            this.parentCategory = parent;
-        }
-
-
-
-    }
 
 }

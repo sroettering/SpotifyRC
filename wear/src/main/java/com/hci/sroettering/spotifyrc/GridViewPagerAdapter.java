@@ -2,7 +2,9 @@ package com.hci.sroettering.spotifyrc;
 
 import android.content.Context;
 import android.support.wearable.view.GridPagerAdapter;
+import android.support.wearable.view.GridViewPager;
 import android.support.wearable.view.WearableListView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,29 +13,48 @@ import android.widget.TextView;
 import com.hci.sroettering.spotifyrc.adapters.MiddleListViewAdapter;
 import com.hci.sroettering.spotifyrc.adapters.RightListViewAdapter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Created by sroettering on 11.05.16.
  */
-public class GridViewPagerAdapter extends GridPagerAdapter {
+public class GridViewPagerAdapter extends GridPagerAdapter implements WearableListView.ClickListener {
 
     private final int PAGE_COUNT = 3;
 
     private List[] pageData;
+    private int currentList;
 
     private Context mContext;
     private MainActivity mActivity;
+    private GridViewPager mPager;
+    private View leftView;
     private WearableListView middleListView;
     private WearableListView rightListView;
     private MiddleListViewAdapter middleListViewAdapter;
     private RightListViewAdapter rightListViewAdapter;
+    private TextView titleView;
 
-    public GridViewPagerAdapter(Context context, MainActivity activity) {
+    public GridViewPagerAdapter(Context context, MainActivity activity, GridViewPager pager) {
         super();
         mContext = context;
         mActivity = activity;
+        mPager = pager;
         pageData = new List[5];
+        currentList = 0;
+        createDummyData();
+    }
+
+    private void createDummyData() {
+        for(int j = 0; j < 5; j++) {
+            List<RightListDataItem> list = new ArrayList<RightListDataItem>();
+            for (int i = 0; i < j+5; i++) {
+                RightListDataItem item = new RightListDataItem("Item " + i, -1, "-1", j);
+                list.add(item);
+            }
+            pageData[j] = list;
+        }
     }
 
     @Override
@@ -48,13 +69,19 @@ public class GridViewPagerAdapter extends GridPagerAdapter {
 
     @Override
     public Object instantiateItem(ViewGroup viewGroup, int row, int col) {
-        if(col == 1) {
+        if(col == 0) {
+            LayoutInflater inflater = mActivity.getLayoutInflater();
+            leftView = inflater.inflate(R.layout.media_control, viewGroup, false);
+            viewGroup.addView(leftView);
+            return leftView;
+        } else if(col == 1) {
             middleListViewAdapter = new MiddleListViewAdapter(mContext);
             LayoutInflater inflater = mActivity.getLayoutInflater();
             View view = inflater.inflate(R.layout.listview_middle_layout, viewGroup, false);
             middleListView = (WearableListView) view.findViewById(R.id.middleListView);
             middleListView.setAdapter(middleListViewAdapter);
             middleListView.setGreedyTouchMode(true);
+            middleListView.setClickListener(this);
             viewGroup.addView(middleListView);
             return middleListView;
         } else if(col == 2) {
@@ -64,8 +91,9 @@ public class GridViewPagerAdapter extends GridPagerAdapter {
             rightListView = (WearableListView) view.findViewById(R.id.rightListView);
             rightListView.setAdapter(rightListViewAdapter);
             rightListView.setGreedyTouchMode(true);
-            TextView title = (TextView) view.findViewById(R.id.list_title);
-            title.setText("Title");
+            rightListViewAdapter.setData(pageData[currentList]);
+            titleView = (TextView) view.findViewById(R.id.list_title);
+            titleView.setText("Title");
             viewGroup.addView(view);
             return view;
         }
@@ -82,11 +110,39 @@ public class GridViewPagerAdapter extends GridPagerAdapter {
 
     @Override
     public void destroyItem(ViewGroup viewGroup, int i, int i1, Object o) {
-        viewGroup.removeView((View) o);
+        if(o != null) {
+            viewGroup.removeView((View) o);
+        }
     }
 
     @Override
     public boolean isViewFromObject(View view, Object o) {
         return view.equals(o);
+    }
+
+    // Clicklistener for both listviews
+
+    @Override
+    public void onClick(WearableListView.ViewHolder viewHolder) {
+        Integer tag = (Integer) viewHolder.itemView.getTag();
+        Log.d("GridViewPagerAdapter", "onClick: " + tag);
+        if(viewHolder instanceof MiddleListViewAdapter.ItemViewHolder) {
+            // click happened in middle listview
+            currentList = tag;
+            rightListViewAdapter.setData(pageData[tag]);
+            titleView.setText(middleListViewAdapter.getTitle(tag));
+            mPager.setCurrentItem(0, 2); // scroll to the right
+        } else if(viewHolder instanceof RightListViewAdapter.ItemViewHolder) {
+            // click happened in right listview
+            /*
+            determine which list is shown on the right
+            start playback
+             */
+        }
+    }
+
+    @Override
+    public void onTopEmptyRegionClick() {
+        // do nothing
     }
 }

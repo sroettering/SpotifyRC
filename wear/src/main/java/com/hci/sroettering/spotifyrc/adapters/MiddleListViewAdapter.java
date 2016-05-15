@@ -65,4 +65,8 @@ public class MiddleListViewAdapter extends WearableListView.Adapter {
         }
     }
 
+    public String getTitle(int pos) {
+        return titles[pos];
+    }
+
 }

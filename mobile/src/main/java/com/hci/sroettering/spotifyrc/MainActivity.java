@@ -15,12 +15,13 @@ import android.widget.ToggleButton;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class MainActivity extends AppCompatActivity implements PagerListFragment.OnFragmentInteractionListener {
+public class MainActivity extends AppCompatActivity implements PagerListFragment.OnFragmentInteractionListener, CommunicationManager.MessageListener {
 
     private SpotifyManager mSpotifyManager;
     private ViewPager pager;
     private PagerListFragmentAdapter plfa;
     private SeekBar seekBar;
+    private CommunicationManager commManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +42,10 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
         mSpotifyManager = SpotifyManager.getInstance();
         mSpotifyManager.setContext(this);
         mSpotifyManager.login();
+
+        commManager = CommunicationManager.getInstance();
+        commManager.setContext(this);
+        commManager.addListener(this);
     }
 
     @Override
@@ -130,6 +135,16 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
             case 4: mSpotifyManager.loadCategory(position);
                 break;
         }
+    }
+
+    @Override
+    public void onCommandMessage(String msg) {
+        Log.d("MainActivity", "Got Command Message: " + msg);
+    }
+
+    @Override
+    public void onSensorMessage(String msg) {
+        // TODO
     }
 
     private String formatMilliseconds(int millis) {

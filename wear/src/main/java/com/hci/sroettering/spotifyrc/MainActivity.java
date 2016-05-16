@@ -5,6 +5,7 @@ import android.support.wearable.activity.WearableActivity;
 import android.support.wearable.view.DotsPageIndicator;
 import android.support.wearable.view.GridViewPager;
 import android.view.View;
+import android.widget.ToggleButton;
 
 import java.util.concurrent.TimeUnit;
 
@@ -12,6 +13,7 @@ public class MainActivity extends WearableActivity {
 
     private GridViewPagerAdapter pagerAdapter;
     private GridViewPager pager;
+    private CommunicationManager commManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,6 +29,15 @@ public class MainActivity extends WearableActivity {
         DotsPageIndicator pageIndicator = (DotsPageIndicator) findViewById(R.id.page_indicator);
         pageIndicator.setPager(pager);
         pageIndicator.setDotFadeWhenIdle(false);
+
+        commManager = CommunicationManager.getInstance();
+        commManager.setContext(this);
+    }
+
+    @Override
+    public void onStop() {
+        CommunicationManager.getInstance().onStop();
+        super.onStop();
     }
 
     @Override
@@ -58,27 +69,28 @@ public class MainActivity extends WearableActivity {
     // onClick Methods
 
     public void onPrevBtnClicked(View v) {
-
+        commManager.sendPrev();
     }
 
     public void onPlayBtnClicked(View v) {
-
+        // TODO
     }
 
     public void onNextBtnClicked(View v) {
-
+        commManager.sendNext();
     }
 
     public void onVolumeDownBtnClicked(View v) {
-
+        commManager.sendVolumeDown();
     }
 
     public void onShuffleBtnClicked(View v) {
-
+        boolean isEnabled = ((ToggleButton) v).isChecked();
+        commManager.sendShuffle(isEnabled);
     }
 
     public void onVolumeUpBtnClicked(View v) {
-
+        commManager.sendVolumeUp();
     }
 
     public static String formatMilliseconds(int millis) {

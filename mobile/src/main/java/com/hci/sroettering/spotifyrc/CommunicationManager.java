@@ -80,7 +80,7 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
 
     @Override
     public void onMessageReceived(MessageEvent msgEvent) {
-        Log.d("CommunicationManager", "Received Handheld Message " + msgEvent.getPath());
+        Log.d("CommunicationManager", "Received Watch Message " + msgEvent.getPath());
         String msgPath = msgEvent.getPath();
         String msg = new String(msgEvent.getData());
         Log.d("CommunicationManager", "Message: " + msg);
@@ -93,7 +93,9 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
                 msgListener.onCommandMessage(msg);
             }
         } else if(msgPath.equals(updatePath)) {
-            // should never happen on handheld
+            for(MessageListener msgListener: listeners) {
+                msgListener.onUpdateMessage(msg);
+            }
         } else if(msgPath.equals(dataPath)) {
             // should never happen on handheld
         }
@@ -119,6 +121,11 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
         sendMessage(updatePath, update);
     }
 
+    public void sendResume() {
+        String update = "resume";
+        sendMessage(updatePath, update);
+    }
+
     public void sendPause() {
         String update = "pause";
         sendMessage(updatePath, update);
@@ -130,8 +137,18 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
     }
 
     public void sendData(String type, String content) {
-        String data = type + ";" + content;
+        String data = type + "" + content;
         sendMessage(dataPath, data);
+    }
+
+    // Sends the state of the toggle buttons to the watch
+    public void sendGUIState(boolean isShuffleEnabled, boolean isPlaying) {
+        String msg = "";
+        msg = "shuffle;" + (isShuffleEnabled? "1" : "0");
+        sendMessage(updatePath, msg);
+
+        msg = isPlaying? "resume" : "pause";
+        sendMessage(updatePath, msg);
     }
 
 
@@ -153,6 +170,7 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
     public interface MessageListener {
         void onCommandMessage(String msg);
         void onSensorMessage(String msg);
+        void onUpdateMessage(String msg);
     }
 
 }

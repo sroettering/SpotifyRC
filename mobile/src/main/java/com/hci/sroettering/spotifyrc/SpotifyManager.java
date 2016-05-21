@@ -61,6 +61,8 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
     // current Activity
     private Activity mContext;
 
+    private CommunicationManager commManager;
+
     private Timer progressUpdateTimer = null;
 
     // Spotify
@@ -96,6 +98,10 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
 
     public void setContext(Activity context) {
         this.mContext = context;
+    }
+
+    public void setCommunicationManager(CommunicationManager manager) {
+        commManager = manager;
     }
 
     public ListDataContainer getLdc() {
@@ -162,6 +168,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
             public void success(Pager<PlaylistSimple> playlistSimplePager, Response response) {
                 ldc.setPlaylists(playlistSimplePager.items);
                 ((MainActivity) mContext).updateData(ldc.getPlaylists(), 0);
+                updateWatchData();
             }
 
             @Override
@@ -177,6 +184,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
             public void success(Pager<SavedTrack> savedTrackPager, Response response) {
                 ldc.setSongs(savedTrackPager.items);
                 ((MainActivity) mContext).updateData(ldc.getSongs(), 1);
+                updateWatchData();
             }
 
             @Override
@@ -192,6 +200,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
             public void success(Pager<SavedAlbum> savedAlbumPager, Response response) {
                 ldc.setAlbums(savedAlbumPager.items);
                 ((MainActivity) mContext).updateData(ldc.getAlbums(), 2);
+                updateWatchData();
             }
 
             @Override
@@ -207,6 +216,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
             public void success(ArtistsCursorPager artistCursorPager, Response response) {
                 ldc.setArtists(artistCursorPager.artists.items);
                 ((MainActivity) mContext).updateData(ldc.getArtists(), 3);
+                updateWatchData();
             }
 
             @Override
@@ -221,7 +231,8 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
             @Override
             public void success(CategoriesPager categoriesPager, Response response) {
                 ldc.setCategories(categoriesPager.categories.items);
-                ((MainActivity)mContext).updateData(ldc.getCategories(), 4);
+                ((MainActivity) mContext).updateData(ldc.getCategories(), 4);
+                updateWatchData();
             }
 
             @Override
@@ -229,6 +240,41 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
                 Log.d("SpotifyManager", "Error retrieving categories: " + error.getMessage());
             }
         });
+    }
+
+    public void updateWatchData() {
+        Log.d("SpotifyManager", "updating watch data");
+        String msg = "";
+        for(Category category: ldc.getCategories()) {
+            msg += ";" + category.name + "--" + category.id;
+        }
+        if(!msg.equals(""))commManager.sendData("category", msg);
+
+        msg = "";
+        for (Artist artist : ldc.getArtists()) {
+            msg += ";" + artist.name + "--" + artist.id;
+        }
+        if(!msg.equals(""))commManager.sendData("artist", msg);
+
+        msg = "";
+        for (SavedAlbum album : ldc.getAlbums()) {
+            msg += ";" + album.album.name + "--" + album.album.id;
+        }
+        if(!msg.equals(""))commManager.sendData("album", msg);
+
+        msg = "";
+        for(PlaylistSimple playlist: ldc.getPlaylists()) {
+            msg += ";" + playlist.name + "--" + playlist.id;
+        }
+        if(!msg.equals(""))commManager.sendData("playlist", msg);
+
+        msg = "";
+        for (SavedTrack track : ldc.getSongs()) {
+            msg += ";" + track.track.artists.get(0).name + " - " + track.track.name
+                    + "--" + MainActivity.formatMilliseconds((int) (track.track.duration_ms / 1000))
+                    + "--" + track.track.id;
+        }
+        if(!msg.equals(""))commManager.sendData("song", msg);
     }
 
 
@@ -252,6 +298,26 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
             mPlayer.play(keySetToList());
             mPlayer.setShuffle(isShuffle);
             startTimer();
+        }
+    }
+
+    public void play(String type, String id) {
+        int pos = -1;
+        if(type.equals("playlist")) {
+            pos = ldc.getPosForPlaylistID(id);
+            if(pos != -1) loadPlaylist(pos);
+        } else if(type.equals("song")) {
+            pos = ldc.getPosForSongID(id);
+            if(pos != -1) loadSong(pos);
+        } else if(type.equals("album")) {
+            pos = ldc.getPosForAlbumID(id);
+            if(pos != -1) loadAlbum(pos);
+        } else if(type.equals("artist")) {
+            pos = ldc.getPosForArtistID(id);
+            if(pos != -1) loadArtist(pos);
+        } else if(type.equals("category")) {
+            pos = ldc.getPosForCategoryID(id);
+            if(pos != -1) loadCategory(pos);
         }
     }
 
@@ -476,7 +542,13 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
         private List<Artist> artists;
         private List<Category> categories;
 
-        public ListDataContainer() {}
+        public ListDataContainer() {
+            playlists = new ArrayList<>();
+            songs = new ArrayList<>();
+            albums = new ArrayList<>();
+            artists = new ArrayList<>();
+            categories = new ArrayList<>();
+        }
 
         public List<PlaylistSimple> getPlaylists() { return playlists; }
         public List<SavedTrack> getSongs() { return songs; }
@@ -502,6 +574,51 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
 
         public void setCategories(List<Category> list) {
             categories = list;
+        }
+
+        public int getPosForPlaylistID(String id) {
+            for(int i = 0; i < playlists.size(); i++) {
+                if(playlists.get(i).id.equals(id)) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        public int getPosForSongID(String id) {
+            for(int i = 0; i < songs.size(); i++) {
+                if(songs.get(i).track.id.equals(id)) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        public int getPosForAlbumID(String id) {
+            for(int i = 0; i < albums.size(); i++) {
+                if(albums.get(i).album.id.equals(id)) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        public int getPosForArtistID(String id) {
+            for(int i = 0; i < artists.size(); i++) {
+                if(artists.get(i).id.equals(id)) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        public int getPosForCategoryID(String id) {
+            for(int i = 0; i < categories.size(); i++) {
+                if(categories.get(i).id.equals(id)) {
+                    return i;
+                }
+            }
+            return -1;
         }
 
     }

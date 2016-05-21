@@ -43,7 +43,31 @@ public class GridViewPagerAdapter extends GridPagerAdapter implements WearableLi
         mPager = pager;
         pageData = new List[5];
         currentList = 0;
-        createDummyData();
+        //createDummyData();
+    }
+
+    // 0 = playlist; 1 = album; 2 = song; 3 = artist; 4 = category
+    public void setData(String[] data, int type) {
+        List<RightListDataItem> dataList = new ArrayList<>();
+        String[] splitItem;
+        if(type == 2) {
+            for(int i = 1; i < data.length; i++) {
+                splitItem = data[i].split("--");
+                RightListDataItem item =
+                        new RightListDataItem(splitItem[0], splitItem[1], splitItem[2], 2);
+                dataList.add(item);
+            }
+        } else {
+            for(int i = 1; i < data.length; i++) {
+                splitItem = data[i].split("--");
+                RightListDataItem item =
+                        new RightListDataItem(splitItem[0], -1, splitItem[1], type);
+                dataList.add(item);
+            }
+        }
+        pageData[type] = dataList;
+        //rightListViewAdapter.setData(pageData[currentList]);
+        rightListViewAdapter.notifyDataSetChanged();
     }
 
     private void createDummyData() {
@@ -98,14 +122,6 @@ public class GridViewPagerAdapter extends GridPagerAdapter implements WearableLi
             return view;
         }
         return null;
-        /*
-            ImageView imageView;
-            imageView = new ImageView(mContext);
-            imageView.setImageResource(carImageIDs[row][col]);
-            imageView.setBackgroundColor(Color.rgb(236, 238, 242));
-            viewGroup.addView(imageView);
-            return imageView;
-         */
     }
 
     @Override
@@ -119,6 +135,7 @@ public class GridViewPagerAdapter extends GridPagerAdapter implements WearableLi
     public boolean isViewFromObject(View view, Object o) {
         return view.equals(o);
     }
+
 
     // Clicklistener for both listviews
 
@@ -136,8 +153,10 @@ public class GridViewPagerAdapter extends GridPagerAdapter implements WearableLi
             // click happened in right listview
             /*
             determine which list is shown on the right
+            use tag to get RightListViewItem
             start playback
              */
+            // TODO
         }
     }
 

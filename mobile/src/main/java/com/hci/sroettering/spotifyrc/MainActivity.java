@@ -46,6 +46,8 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
         commManager = CommunicationManager.getInstance();
         commManager.setContext(this);
         commManager.addListener(this);
+        mSpotifyManager.setCommunicationManager(commManager);
+        syncWatchGUI();
     }
 
     @Override
@@ -56,6 +58,12 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
 
     public void updateData(final List data, final int pagerPosition) {
         plfa.updateFragmentListData(data, pagerPosition);
+    }
+
+    public void syncWatchGUI() {
+        ToggleButton btnShuffle = (ToggleButton) findViewById(R.id.btn_shuffle);
+        ToggleButton btnPlay = (ToggleButton) findViewById(R.id.btn_play);
+        commManager.sendGUIState(btnShuffle.isChecked(), btnPlay.isChecked());
     }
 
     // Media Control Display
@@ -70,6 +78,8 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
 
         seekBar.setMax(10000);
         seekBar.setProgress(0);
+
+        commManager.sendTrackUpdate(artist, track);
     }
 
     public void updateProgress(int position, int duration) {
@@ -96,10 +106,12 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
 
     public void play() {
         mSpotifyManager.resume();
+        commManager.sendResume();
     }
 
     public void pause() {
         mSpotifyManager.pause();
+        commManager.sendPause();
     }
 
     public void nextTrack(View v) {
@@ -111,7 +123,9 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
     }
 
     public void onShuffleBtnClick(View v) {
-        mSpotifyManager.shuffle(((ToggleButton) v).isChecked());
+        boolean isEnabled = ((ToggleButton) v).isChecked();
+        mSpotifyManager.shuffle(isEnabled);
+        commManager.sendShuffle(isEnabled);
     }
 
 
@@ -140,6 +154,35 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
     @Override
     public void onCommandMessage(String msg) {
         Log.d("MainActivity", "Got Command Message: " + msg);
+        String[] splitMsg = msg.split(";");
+        if(msg.equals("dataRequest")) { // watch activity just started
+            mSpotifyManager.updateWatchData();
+            syncWatchGUI();
+        } else if(msg.equals("next")) {
+            mSpotifyManager.nextTrack();
+        } else if(msg.equals("prev")) {
+            mSpotifyManager.prevTrack();
+        } else if(msg.equals("pause")) {
+            mSpotifyManager.pause();
+            ToggleButton btn = (ToggleButton) findViewById(R.id.btn_play);
+            btn.setChecked(false);
+        } else if(msg.equals("resume")) {
+            mSpotifyManager.resume();
+            ToggleButton btn = (ToggleButton) findViewById(R.id.btn_play);
+            btn.setChecked(true);
+        } else if(msg.equals("volumeUp")) {
+            // TODO
+        } else if(msg.equals("volumeDown")) {
+            // TODO
+        } else if(splitMsg[0].equals("shuffle")) {
+            mSpotifyManager.shuffle(splitMsg[1].equals("1"));
+            ToggleButton btn = (ToggleButton) findViewById(R.id.btn_shuffle);
+            btn.setChecked(splitMsg[1].equals("1"));
+        } else if(splitMsg[0].equals("play")) {
+            mSpotifyManager.play(splitMsg[1], splitMsg[2]);
+            ToggleButton btn = (ToggleButton) findViewById(R.id.btn_play);
+            btn.setChecked(true);
+        }
     }
 
     @Override
@@ -147,7 +190,24 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
         // TODO
     }
 
-    private String formatMilliseconds(int millis) {
+    @Override
+    public void onUpdateMessage(String msg) {
+        Log.d("MainActivity", "Got Update Message: " + msg);
+        String[] splitMsg = msg.split(";");
+        if(splitMsg[0].equals("shuffle")) {
+            boolean isEnabled = splitMsg[1].equals("1");
+            ToggleButton btn = (ToggleButton) findViewById(R.id.btn_shuffle);
+            btn.setChecked(isEnabled);
+        } else if(splitMsg[0].equals("resume")) {
+            ToggleButton btn = (ToggleButton) findViewById(R.id.btn_play);
+            btn.setChecked(true);
+        } else if(splitMsg[0].equals("pause")) {
+            ToggleButton btn = (ToggleButton) findViewById(R.id.btn_play);
+            btn.setChecked(false);
+        }
+    }
+
+    public static String formatMilliseconds(int millis) {
         String duration = String.format("%02d:%02d",
                 TimeUnit.MILLISECONDS.toMinutes(millis),
                 TimeUnit.MILLISECONDS.toSeconds(millis) -

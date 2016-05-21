@@ -5,11 +5,12 @@ import android.support.wearable.activity.WearableActivity;
 import android.support.wearable.view.DotsPageIndicator;
 import android.support.wearable.view.GridViewPager;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import java.util.concurrent.TimeUnit;
 
-public class MainActivity extends WearableActivity {
+public class MainActivity extends WearableActivity implements CommunicationManager.MessageListener {
 
     private GridViewPagerAdapter pagerAdapter;
     private GridViewPager pager;
@@ -32,6 +33,8 @@ public class MainActivity extends WearableActivity {
 
         commManager = CommunicationManager.getInstance();
         commManager.setContext(this);
+        commManager.addListener(this);
+        commManager.sendDataRequest();
     }
 
     @Override
@@ -73,7 +76,12 @@ public class MainActivity extends WearableActivity {
     }
 
     public void onPlayBtnClicked(View v) {
-        // TODO
+        ToggleButton btn = (ToggleButton) v;
+        if(btn.isChecked()) {
+            commManager.sendResume();
+        } else {
+            commManager.sendPause();
+        }
     }
 
     public void onNextBtnClicked(View v) {
@@ -93,6 +101,49 @@ public class MainActivity extends WearableActivity {
         commManager.sendVolumeUp();
     }
 
+
+    // MessageListener
+
+    @Override
+    public void onUpdateMessage(String msg) {
+        String[] splitMsg = msg.split(";");
+        if(splitMsg[0].equals("play")) {
+            TextView infoTV = (TextView) findViewById(R.id.ctrl_info_tv);
+            infoTV.setText(splitMsg[1]);
+            ToggleButton btn = (ToggleButton) findViewById(R.id.btn_play_pause);
+            btn.setChecked(true);
+        } else if(splitMsg[0].equals("shuffle")) {
+            boolean isEnabled = splitMsg[1].equals("1");
+            ToggleButton btn = (ToggleButton) findViewById(R.id.ctrl_shuffle);
+            btn.setChecked(isEnabled);
+        } else if(splitMsg[0].equals("pause")) {
+            ToggleButton btn = (ToggleButton) findViewById(R.id.btn_play_pause);
+            btn.setChecked(false);
+        } else if(splitMsg[0].equals("resume")) {
+            ToggleButton btn = (ToggleButton) findViewById(R.id.btn_play_pause);
+            btn.setChecked(true);
+        }
+    }
+
+    @Override
+    public void onDataMessage(String msg) {
+        String[] splitMsg = msg.split(";");
+        if(splitMsg[0].equals("playlist")) {
+            pagerAdapter.setData(splitMsg, 0);
+        } else if(splitMsg[0].equals("album")) {
+            pagerAdapter.setData(splitMsg, 1);
+        } else if(splitMsg[0].equals("song")) {
+            pagerAdapter.setData(splitMsg, 2);
+        } else if(splitMsg[0].equals("artist")) {
+            pagerAdapter.setData(splitMsg, 3);
+        } else if(splitMsg[0].equals("category")) {
+            pagerAdapter.setData(splitMsg, 4);
+        }
+    }
+
+
+    // Util methods
+
     public static String formatMilliseconds(int millis) {
         String duration = String.format("%02d:%02d",
                 TimeUnit.MILLISECONDS.toMinutes(millis),
@@ -101,5 +152,4 @@ public class MainActivity extends WearableActivity {
         );
         return duration;
     }
-
 }

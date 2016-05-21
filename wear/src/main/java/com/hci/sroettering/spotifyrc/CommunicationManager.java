@@ -114,6 +114,11 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
 
     // Sending messages
 
+    public void sendDataRequest() {
+        String cmd = "dataRequest";
+        sendMessage(cmdPath, cmd);
+    }
+
     public void sendNext() {
         String cmd = "next";
         sendMessage(cmdPath, cmd);
@@ -126,6 +131,11 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
 
     public void sendPause() {
         String cmd = "pause";
+        sendMessage(cmdPath, cmd);
+    }
+
+    public void sendResume() {
+        String cmd = "resume";
         sendMessage(cmdPath, cmd);
     }
 

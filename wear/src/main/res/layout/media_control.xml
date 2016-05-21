@@ -8,10 +8,10 @@
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="0.25"
+        android:layout_weight="0.4"
         android:layout_gravity="center_horizontal"
         android:weightSum="1"
-        android:layout_marginTop="14dp">
+        android:layout_marginTop="10dp">
 
         <TextView
             android:layout_width="match_parent"

@@ -24,6 +24,7 @@ public class GridViewPagerAdapter extends GridPagerAdapter implements WearableLi
     private final int PAGE_COUNT = 3;
 
     private List[] pageData;
+    private String[] types = {"playlist", "album", "song", "artist", "category"};
     private int currentList;
 
     private Context mContext;
@@ -115,6 +116,7 @@ public class GridViewPagerAdapter extends GridPagerAdapter implements WearableLi
             rightListView = (WearableListView) view.findViewById(R.id.rightListView);
             rightListView.setAdapter(rightListViewAdapter);
             rightListView.setGreedyTouchMode(true);
+            rightListView.setClickListener(this);
             rightListViewAdapter.setData(pageData[currentList]);
             titleView = (TextView) view.findViewById(R.id.list_title);
             titleView.setText("Title");
@@ -152,12 +154,11 @@ public class GridViewPagerAdapter extends GridPagerAdapter implements WearableLi
             mPager.setCurrentItem(0, 2); // scroll to the right
         } else if(viewHolder instanceof RightListViewAdapter.ItemViewHolder) {
             // click happened in right listview
-            /*
-            determine which list is shown on the right
-            use tag to get RightListViewItem
-            start playback
-             */
-            // TODO
+            RightListViewAdapter.ItemViewHolder holder = (RightListViewAdapter.ItemViewHolder) viewHolder;
+            int position = (int)holder.itemView.getTag();
+            RightListDataItem item = (RightListDataItem) pageData[currentList].get(position);
+            CommunicationManager.getInstance().sendPlay(types[item.parentCategory], item.spotifyID);
+            mPager.setCurrentItem(0, 0); // scroll to control page
         }
     }
 

@@ -39,7 +39,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     @Override
     public void onStop() {
-        CommunicationManager.getInstance().onStop();
+        commManager.onStop();
         super.onStop();
     }
 

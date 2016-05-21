@@ -59,6 +59,7 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
     @Override
     protected void onDestroy() {
         mSpotifyManager.onDestroy();
+        commManager.onStop();
         super.onDestroy();
     }
 

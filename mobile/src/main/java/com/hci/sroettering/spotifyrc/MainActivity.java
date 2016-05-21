@@ -23,6 +23,9 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
     private SeekBar seekBar;
     private CommunicationManager commManager;
 
+    private String curTrack;
+    private String curArtist;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -47,6 +50,9 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
         commManager.setContext(this);
         commManager.addListener(this);
         mSpotifyManager.setCommunicationManager(commManager);
+
+        curArtist = "";
+        curTrack = "";
         syncWatchGUI();
     }
 
@@ -64,11 +70,17 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
         ToggleButton btnShuffle = (ToggleButton) findViewById(R.id.btn_shuffle);
         ToggleButton btnPlay = (ToggleButton) findViewById(R.id.btn_play);
         commManager.sendGUIState(btnShuffle.isChecked(), btnPlay.isChecked());
+        if(!curArtist.equals("") && !curTrack.equals("")) {
+            commManager.sendTrackUpdate(curArtist, curTrack);
+        }
     }
 
     // Media Control Display
 
     public void updateCurrentTrackInfo(String artist, String track, int length) {
+        curArtist = artist;
+        curTrack = track;
+
         TextView artistTV = (TextView)findViewById(R.id.tv_cur_artist);
         artistTV.setText(artist.substring(0, Math.min(20, artist.length())) + " -");
         TextView trackTV = (TextView)findViewById(R.id.tv_cur_track);

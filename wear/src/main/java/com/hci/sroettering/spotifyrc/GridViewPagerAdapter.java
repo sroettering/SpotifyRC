@@ -147,6 +147,7 @@ public class GridViewPagerAdapter extends GridPagerAdapter implements WearableLi
             // click happened in middle listview
             currentList = tag;
             rightListViewAdapter.setData(pageData[tag]);
+            rightListView.smoothScrollToPosition(0);
             titleView.setText(middleListViewAdapter.getTitle(tag));
             mPager.setCurrentItem(0, 2); // scroll to the right
         } else if(viewHolder instanceof RightListViewAdapter.ItemViewHolder) {

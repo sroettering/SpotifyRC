@@ -152,6 +152,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
                     mPlayer.addConnectionStateCallback(SpotifyManager.this);
                     mPlayer.addPlayerNotificationCallback(SpotifyManager.this);
                     mPlayer.setShuffle(isShuffle);
+                    mPlayer.setRepeat(true);
                 }
 
                 @Override
@@ -472,6 +473,9 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
         }
         if(eventType.name().equals("PLAY")) {
             ((MainActivity) mContext).updatePlayButton(true);
+        }
+        if(eventType.name().equals("END_OF_CONTEXT")) {
+            mPlayer.resume();
         }
         playerState = state;
     }

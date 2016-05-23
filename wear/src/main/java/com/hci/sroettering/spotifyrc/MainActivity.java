@@ -1,20 +1,27 @@
 package com.hci.sroettering.spotifyrc;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
 import android.support.wearable.activity.WearableActivity;
 import android.support.wearable.view.DotsPageIndicator;
 import android.support.wearable.view.GridViewPager;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import java.util.concurrent.TimeUnit;
 
-public class MainActivity extends WearableActivity implements CommunicationManager.MessageListener {
+public class MainActivity extends WearableActivity implements CommunicationManager.MessageListener, IVoiceControl {
 
     private GridViewPagerAdapter pagerAdapter;
     private GridViewPager pager;
     private CommunicationManager commManager;
+
+    private SpeechRecognizer speechRecognizer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,12 +42,44 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         commManager.setContext(this);
         commManager.addListener(this);
         commManager.sendDataRequest();
+
+        VoiceRecognitionListener.getInstance().setListener(this);
+        startListening();
+    }
+
+    @Override
+    public void onPause() {
+        if (speechRecognizer != null) {
+            speechRecognizer.stopListening();
+            speechRecognizer.cancel();
+            speechRecognizer.destroy();
+        }
+        speechRecognizer = null;
+        super.onPause();
     }
 
     @Override
     public void onStop() {
         commManager.onStop();
+        stopListening();
         super.onStop();
+    }
+
+    @Override
+    public void finish() {
+        stopListening();
+        super.finish();
+    }
+
+    @Override
+    public void onDestroy() {
+        if (speechRecognizer != null) {
+            speechRecognizer.stopListening();
+            speechRecognizer.cancel();
+            speechRecognizer.destroy();
+        }
+        speechRecognizer = null;
+        super.onDestroy();
     }
 
     @Override
@@ -142,6 +181,58 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     }
 
 
+    // Voice Recognition Code
+    private void startListening() {
+        try {
+            initSpeech();
+            Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+            intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getApplication().getPackageName());
+            speechRecognizer.startListening(intent);
+        } catch(Exception ex) {
+            Log.d("MainActivity", "Bei der SpeechRecognizer Initialisierung ist ein Fehler aufgetreten");
+        }
+    }
+
+    private void stopListening() {
+        if (speechRecognizer != null) {
+            speechRecognizer.stopListening();
+            speechRecognizer.cancel();
+            speechRecognizer.destroy();
+        }
+        speechRecognizer = null;
+    }
+
+    private void initSpeech() {
+        if (speechRecognizer == null) {
+            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
+            if (!SpeechRecognizer.isRecognitionAvailable(getApplicationContext())) {
+                Toast.makeText(getApplicationContext(), "Speech Recognition is not available",
+                        Toast.LENGTH_LONG).show();
+                finish();
+            }
+            speechRecognizer.setRecognitionListener(VoiceRecognitionListener.getInstance());
+        }
+    }
+
+    // IVoiceControl
+    @Override
+    public void processVoiceCommands(String... voiceCommands) {
+        for(String s: voiceCommands) {
+            Log.d("VoiceRecognition", "Recorded command: " + s);
+        }
+
+        // always restart the listening service at the end
+        restartListeningService();
+    }
+
+    @Override
+    public void restartListeningService() {
+        stopListening();
+        startListening();
+    }
+
+
     // Util methods
 
     public static String formatMilliseconds(int millis) {
@@ -152,4 +243,5 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         );
         return duration;
     }
+
 }

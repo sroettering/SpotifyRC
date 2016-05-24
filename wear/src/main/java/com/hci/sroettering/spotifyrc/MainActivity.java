@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.support.wearable.activity.WearableActivity;
+import android.support.wearable.view.BoxInsetLayout;
 import android.support.wearable.view.DotsPageIndicator;
 import android.support.wearable.view.GridViewPager;
 import android.util.Log;
@@ -44,17 +45,12 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         commManager.sendDataRequest();
 
         VoiceRecognitionListener.getInstance().setListener(this);
-        startListening();
+        //startListening();
     }
 
     @Override
     public void onPause() {
-        if (speechRecognizer != null) {
-            speechRecognizer.stopListening();
-            speechRecognizer.cancel();
-            speechRecognizer.destroy();
-        }
-        speechRecognizer = null;
+        stopListening();
         super.onPause();
     }
 
@@ -73,12 +69,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     @Override
     public void onDestroy() {
-        if (speechRecognizer != null) {
-            speechRecognizer.stopListening();
-            speechRecognizer.cancel();
-            speechRecognizer.destroy();
-        }
-        speechRecognizer = null;
+        stopListening();
         super.onDestroy();
     }
 
@@ -86,6 +77,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     public void onEnterAmbient(Bundle ambientDetails) {
         super.onEnterAmbient(ambientDetails);
         updateDisplay();
+        stopListening();
     }
 
     @Override
@@ -96,6 +88,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     @Override
     public void onExitAmbient() {
+        restartListeningService();
         updateDisplay();
         super.onExitAmbient();
     }
@@ -103,8 +96,14 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     private void updateDisplay() {
         if (isAmbient()) {
             // TODO
+            Log.d("MainActivity", "isAmbient() : true");
+            BoxInsetLayout layout = (BoxInsetLayout) findViewById(R.id.parent_layout);
+            layout.setBackgroundColor(getResources().getColor(R.color.black));
         } else {
             // TODO
+            Log.d("MainActivity", "isAmbient() : false");
+            BoxInsetLayout layout = (BoxInsetLayout) findViewById(R.id.parent_layout);
+            layout.setBackgroundColor(getResources().getColor(R.color.primary));
         }
     }
 

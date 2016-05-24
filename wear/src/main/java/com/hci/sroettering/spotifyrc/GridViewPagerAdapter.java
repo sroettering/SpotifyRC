@@ -47,6 +47,10 @@ public class GridViewPagerAdapter extends GridPagerAdapter implements WearableLi
         //createDummyData();
     }
 
+    public List[] getData() {
+        return pageData;
+    }
+
     // 0 = playlist; 1 = album; 2 = song; 3 = artist; 4 = category
     public void setData(String[] data, int type) {
         List<RightListDataItem> dataList = new ArrayList<>();
@@ -67,7 +71,7 @@ public class GridViewPagerAdapter extends GridPagerAdapter implements WearableLi
             }
         }
         pageData[type] = dataList;
-        //rightListViewAdapter.setData(pageData[currentList]);
+        mActivity.onDataChanged();
         rightListViewAdapter.notifyDataSetChanged();
     }
 

@@ -14,6 +14,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends WearableActivity implements CommunicationManager.MessageListener, IVoiceControl {
@@ -23,6 +24,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     private CommunicationManager commManager;
 
     private SpeechRecognizer speechRecognizer;
+    private KeywordDictionary keywordDictionary;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,6 +48,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
         VoiceRecognitionListener.getInstance().setListener(this);
         //startListening();
+        keywordDictionary = new KeywordDictionary();
     }
 
     @Override
@@ -95,15 +98,20 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     private void updateDisplay() {
         if (isAmbient()) {
-            // TODO
             Log.d("MainActivity", "isAmbient() : true");
             BoxInsetLayout layout = (BoxInsetLayout) findViewById(R.id.parent_layout);
             layout.setBackgroundColor(getResources().getColor(R.color.black));
         } else {
-            // TODO
             Log.d("MainActivity", "isAmbient() : false");
             BoxInsetLayout layout = (BoxInsetLayout) findViewById(R.id.parent_layout);
             layout.setBackgroundColor(getResources().getColor(R.color.primary));
+        }
+    }
+
+    public void onDataChanged() {
+        List[] data = pagerAdapter.getData();
+        if(data != null) {
+            keywordDictionary.setSpotifyData(data);
         }
     }
 
@@ -217,12 +225,17 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     // IVoiceControl
     @Override
     public void processVoiceCommands(String... voiceCommands) {
-        for(String s: voiceCommands) {
-            Log.d("VoiceRecognition", "Recorded command: " + s);
+        String s = voiceCommands[0].toLowerCase();
+        if(keywordDictionary.couldBeCommand(s)) {
+            String propableCommand = keywordDictionary.getMostPropableCommandForText(s.toLowerCase());
+            Log.d("VoiceRecognition", "Recorded: " + s.toLowerCase() + " results in command: " + propableCommand);
+        } else {
+            Log.d("VoiceRecognition", "Most likely no valid command - does not contain a polite keyword");
         }
-
-        // always restart the listening service at the end
-        restartListeningService();
+        // always restart the listening service at the end if not in ambient mode
+        if(!isAmbient()) {
+            restartListeningService();
+        }
     }
 
     @Override

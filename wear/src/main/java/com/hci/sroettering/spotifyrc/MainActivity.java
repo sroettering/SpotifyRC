@@ -47,8 +47,10 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         commManager.sendDataRequest();
 
         VoiceRecognitionListener.getInstance().setListener(this);
-        //startListening();
         keywordDictionary = new KeywordDictionary();
+        if(!isAmbient()) {
+            startListening();
+        }
     }
 
     @Override
@@ -98,11 +100,11 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     private void updateDisplay() {
         if (isAmbient()) {
-            Log.d("MainActivity", "isAmbient() : true");
+            //Log.d("MainActivity", "isAmbient() : true");
             BoxInsetLayout layout = (BoxInsetLayout) findViewById(R.id.parent_layout);
             layout.setBackgroundColor(getResources().getColor(R.color.black));
         } else {
-            Log.d("MainActivity", "isAmbient() : false");
+            //Log.d("MainActivity", "isAmbient() : false");
             BoxInsetLayout layout = (BoxInsetLayout) findViewById(R.id.parent_layout);
             layout.setBackgroundColor(getResources().getColor(R.color.primary));
         }
@@ -144,6 +146,9 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     }
 
     public void onVolumeUpBtnClicked(View v) {
+//        //only for testing voice recognition
+//        String result = keywordDictionary.getMostPropableCommandForText("play gute laune bitte");
+//        Log.d("MainActivity-Test", "Result: " + result);
         commManager.sendVolumeUp();
     }
 
@@ -229,6 +234,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         if(keywordDictionary.couldBeCommand(s)) {
             String propableCommand = keywordDictionary.getMostPropableCommandForText(s.toLowerCase());
             Log.d("VoiceRecognition", "Recorded: " + s.toLowerCase() + " results in command: " + propableCommand);
+            commManager.sendCommand(propableCommand);
         } else {
             Log.d("VoiceRecognition", "Most likely no valid command - does not contain a polite keyword");
         }
@@ -241,7 +247,9 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     @Override
     public void restartListeningService() {
         stopListening();
-        startListening();
+        if(!isAmbient()) {
+            startListening();
+        }
     }
 
 

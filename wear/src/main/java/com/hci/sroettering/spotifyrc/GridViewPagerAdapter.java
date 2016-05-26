@@ -148,7 +148,7 @@ public class GridViewPagerAdapter extends GridPagerAdapter implements WearableLi
     @Override
     public void onClick(WearableListView.ViewHolder viewHolder) {
         Integer tag = (Integer) viewHolder.itemView.getTag();
-        Log.d("GridViewPagerAdapter", "onClick: " + tag);
+        //Log.d("GridViewPagerAdapter", "onClick: " + tag);
         if(viewHolder instanceof MiddleListViewAdapter.ItemViewHolder) {
             // click happened in middle listview
             currentList = tag;

@@ -80,10 +80,10 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
 
     @Override
     public void onMessageReceived(MessageEvent msgEvent) {
-        Log.d("CommunicationManager", "Received Handheld Message " + msgEvent.getPath());
+        //Log.d("CommunicationManager", "Received Handheld Message " + msgEvent.getPath());
         String msgPath = msgEvent.getPath();
         String msg = new String(msgEvent.getData());
-        Log.d("CommunicationManager", "Message: " + msg);
+        //Log.d("CommunicationManager", "Message: " + msg);
         if(msgPath.equals(updatePath)) {
             for(MessageListener msgListener: listeners) {
                 msgListener.onUpdateMessage(msg);
@@ -160,6 +160,10 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
         sendMessage(cmdPath, cmd);
     }
 
+    public void sendCommand(String command) {
+        sendMessage(cmdPath, command);
+    }
+
 
     private void sendMessage(final String path, final String text) {
         new Thread(new Runnable() {
@@ -169,7 +173,7 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
                 for(Node n: nodes.getNodes()) {
                     MessageApi.SendMessageResult result = Wearable.MessageApi.sendMessage(
                             mApiClient, n.getId(), path, text.getBytes()).await();
-                    Log.d("CommunicationManager", result.getStatus().toString());
+                    //Log.d("CommunicationManager", result.getStatus().toString());
                 }
             }
         }).start();

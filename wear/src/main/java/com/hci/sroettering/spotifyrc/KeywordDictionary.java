@@ -136,29 +136,39 @@ public class KeywordDictionary {
     private String convertExtrasToCommand(String text, String keyword) {
         String extraCommand = ";";
         String rText = text.replace(keyword, "").replace(politeness_keyword, "").trim();
-        Log.d("KeywordDictionary", "found extras: " + rText);
+        //Log.d("KeywordDictionary", "found extras: " + rText);
 
         int minimalDistance = Integer.MAX_VALUE;
         RightListDataItem mostSimilarItem = null;
         // search spotify data for the given text
         for(int i = 0; i < spotifyData.length; i++) {
+            if(spotifyData[i] == null) {
+                continue;
+            }
             for(RightListDataItem item: spotifyData[i]) {
                 int distance = computeMinimalDistanceWithSubstrings(item.text.toLowerCase(), rText);
+                //Log.d("KeywordDictionary", "data[" + i + "] text: " + item.text.toLowerCase() + "; distance: " + distance);
                 if(distance < minimalDistance) {
                     minimalDistance = distance;
                     mostSimilarItem = item;
                 }
             }
         }
-        Log.d("KeywordDictionary", "found most similar item with text: " + mostSimilarItem.text);
+        //Log.d("KeywordDictionary", "found item with text: " + mostSimilarItem.text + " and minimal distance: " + minimalDistance);
+        extraCommand += types[mostSimilarItem.parentCategory] + ";" + mostSimilarItem.spotifyID;
         return extraCommand;
     }
 
     private int computeMinimalDistanceWithSubstrings(String text, String textToLookFor) {
-        String cleanText = text.replaceAll("[^a-zA-Z0-9]+","").trim();
+        String cleanText = text.replaceAll("[^a-zA-Z0-9 ]+","").trim();
         int minimumDistance = Integer.MAX_VALUE;
+        //Log.d("KeywordDictionary", "Substrings cleanText: " + cleanText);
+        if(text.length() < textToLookFor.length()) {
+            return computeLevenshteinDistance(cleanText, textToLookFor);
+        }
+
         String curSubString = "";
-        for(int i = 0; i < cleanText.length() - textToLookFor.length(); i++) {
+        for(int i = 0; i < cleanText.length() - textToLookFor.length() + 1; i++) { // +1 in case of same lengths
             curSubString = cleanText.substring(i, i+textToLookFor.length());
             minimumDistance = Math.min(minimumDistance, computeLevenshteinDistance(curSubString, textToLookFor));
         }

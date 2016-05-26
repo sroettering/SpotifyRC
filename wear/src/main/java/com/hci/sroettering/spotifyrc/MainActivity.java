@@ -24,7 +24,6 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     private CommunicationManager commManager;
 
     private SpeechRecognizer speechRecognizer;
-    private KeywordDictionary keywordDictionary;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,7 +46,6 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         commManager.sendDataRequest();
 
         VoiceRecognitionListener.getInstance().setListener(this);
-        keywordDictionary = new KeywordDictionary();
         if(!isAmbient()) {
             startListening();
         }
@@ -112,9 +110,6 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     public void onDataChanged() {
         List[] data = pagerAdapter.getData();
-        if(data != null) {
-            keywordDictionary.setSpotifyData(data);
-        }
     }
 
     // onClick Methods
@@ -200,6 +195,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
             Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
             intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getApplication().getPackageName());
+            intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1000);
             speechRecognizer.startListening(intent);
         } catch(Exception ex) {
             Log.d("MainActivity", "Bei der SpeechRecognizer Initialisierung ist ein Fehler aufgetreten");
@@ -231,10 +227,9 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     @Override
     public void processVoiceCommands(String... voiceCommands) {
         String s = voiceCommands[0].toLowerCase();
-        if(keywordDictionary.couldBeCommand(s)) {
-            String propableCommand = keywordDictionary.getMostPropableCommandForText(s.toLowerCase());
-            Log.d("VoiceRecognition", "Recorded: " + s.toLowerCase() + " results in command: " + propableCommand);
-            commManager.sendCommand(propableCommand);
+        //Log.d("KeywordDictionary", "Recorded string: " + s);
+        if(s.contains("bitte")) { // politeness keyword
+            commManager.sendTextCommand(s);
         } else {
             Log.d("VoiceRecognition", "Most likely no valid command - does not contain a polite keyword");
         }

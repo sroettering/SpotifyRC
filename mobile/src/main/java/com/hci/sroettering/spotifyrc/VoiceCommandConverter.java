@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * Created by sroettering on 24.05.16.
  */
-public class KeywordDictionary {
+public class VoiceCommandConverter {
 
     private final ArrayList<String> play_keywords = new ArrayList<String>(Arrays.asList(
             "play", "abspielen", "wechsel zu", "mach mal", "spiele", "spiel", "ich wünsche mir"
@@ -53,11 +53,11 @@ public class KeywordDictionary {
 
     private final String politeness_keyword = "bitte";
 
-    private List<RightListDataItem>[] spotifyData;
+    private List<SpotifyItem>[] spotifyData;
 
     private String[] types = {"playlist", "album", "song", "artist", "category"};
 
-    public KeywordDictionary() {}
+    public VoiceCommandConverter() {}
 
     public void setSpotifyData(List[] data) {
         spotifyData = data;
@@ -136,33 +136,33 @@ public class KeywordDictionary {
     private String convertExtrasToCommand(String text, String keyword) {
         String extraCommand = ";";
         String rText = text.replace(keyword, "").replace(politeness_keyword, "").trim();
-        //Log.d("KeywordDictionary", "found extras: " + rText);
+        //Log.d("VoiceCommandConverter", "found extras: " + rText);
 
         int minimalDistance = Integer.MAX_VALUE;
-        RightListDataItem mostSimilarItem = null;
+        SpotifyItem mostSimilarItem = null;
         // search spotify data for the given text
         for(int i = 0; i < spotifyData.length; i++) {
             if(spotifyData[i] == null) {
                 continue;
             }
-            for(RightListDataItem item: spotifyData[i]) {
+            for(SpotifyItem item: spotifyData[i]) {
                 int distance = computeMinimalDistanceWithSubstrings(item.text.toLowerCase(), rText);
-                //Log.d("KeywordDictionary", "data[" + i + "] text: " + item.text.toLowerCase() + "; distance: " + distance);
+                //Log.d("VoiceCommandConverter", "data[" + i + "] text: " + item.text.toLowerCase() + "; distance: " + distance);
                 if(distance < minimalDistance) {
                     minimalDistance = distance;
                     mostSimilarItem = item;
                 }
             }
         }
-        //Log.d("KeywordDictionary", "found item with text: " + mostSimilarItem.text + " and minimal distance: " + minimalDistance);
-        extraCommand += types[mostSimilarItem.parentCategory] + ";" + mostSimilarItem.spotifyID;
+        //Log.d("VoiceCommandConverter", "found item with text: " + mostSimilarItem.text + " and minimal distance: " + minimalDistance);
+        extraCommand += types[mostSimilarItem.type] + ";" + mostSimilarItem.spotifyID;
         return extraCommand;
     }
 
     private int computeMinimalDistanceWithSubstrings(String text, String textToLookFor) {
         String cleanText = text.replaceAll("[^a-zA-Z0-9 ]+","").trim();
         int minimumDistance = Integer.MAX_VALUE;
-        //Log.d("KeywordDictionary", "Substrings cleanText: " + cleanText);
+        //Log.d("VoiceCommandConverter", "Substrings cleanText: " + cleanText);
         if(text.length() < textToLookFor.length()) {
             return computeLevenshteinDistance(cleanText, textToLookFor);
         }

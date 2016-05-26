@@ -29,6 +29,7 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
     private static CommunicationManager instance;
 
     private final String cmdPath = "/command";
+    private final String textCmdPath = "/textCommand";
     private final String updatePath = "/playerUpdate";
     private final String dataPath = "/listData";
     private final String sensorPath = "/sensorData";
@@ -84,13 +85,17 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
         String msgPath = msgEvent.getPath();
         String msg = new String(msgEvent.getData());
         Log.d("CommunicationManager", "Message: " + msg);
-        if(msgPath.equals(sensorPath)) {
-            for(MessageListener msgListener: listeners) {
+        if (msgPath.equals(sensorPath)) {
+            for (MessageListener msgListener : listeners) {
                 msgListener.onSensorMessage(msg);
             }
-        } else if(msgPath.equals(cmdPath)) {
-            for(MessageListener msgListener: listeners) {
+        } else if (msgPath.equals(cmdPath)) {
+            for (MessageListener msgListener : listeners) {
                 msgListener.onCommandMessage(msg);
+            }
+        } else if(msgPath.equals(textCmdPath)) {
+            for (MessageListener msgListener : listeners) {
+                msgListener.onTextCommandMessage(msg);
             }
         } else if(msgPath.equals(updatePath)) {
             for(MessageListener msgListener: listeners) {
@@ -169,6 +174,7 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
     // Must be implemented to receive messages
     public interface MessageListener {
         void onCommandMessage(String msg);
+        void onTextCommandMessage(String msg);
         void onSensorMessage(String msg);
         void onUpdateMessage(String msg);
     }

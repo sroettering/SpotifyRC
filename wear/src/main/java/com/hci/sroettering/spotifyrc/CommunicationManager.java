@@ -29,6 +29,7 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
     private static CommunicationManager instance;
 
     private final String cmdPath = "/command";
+    private final String textCmdPath = "/textCommand";
     private final String updatePath = "/playerUpdate";
     private final String dataPath = "/listData";
     private final String sensorPath = "/sensorData";
@@ -162,6 +163,10 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
 
     public void sendCommand(String command) {
         sendMessage(cmdPath, command);
+    }
+
+    public void sendTextCommand(String command) {
+        sendMessage(textCmdPath, command);
     }
 
 

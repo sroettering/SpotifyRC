@@ -199,6 +199,11 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
     }
 
     @Override
+    public void onTextCommandMessage(String msg) {
+        // do stuff
+    }
+
+    @Override
     public void onSensorMessage(String msg) {
         // TODO
     }

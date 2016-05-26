@@ -432,6 +432,10 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
         });
     }
 
+    public SpotifyService getSpotifyService() {
+        return spotify;
+    }
+
 
     // Callbacks
 

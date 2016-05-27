@@ -7,7 +7,10 @@ import android.util.Log;
 import android.widget.ImageView;
 
 import java.io.InputStream;
+import java.net.URL;
 import java.util.HashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Created by sroettering on 22.04.16.

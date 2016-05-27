@@ -12,6 +12,7 @@ import kaaes.spotify.webapi.android.models.Category;
 import kaaes.spotify.webapi.android.models.Playlist;
 import kaaes.spotify.webapi.android.models.PlaylistSimple;
 import kaaes.spotify.webapi.android.models.PlaylistTrack;
+import kaaes.spotify.webapi.android.models.PlaylistsPager;
 import kaaes.spotify.webapi.android.models.SavedAlbum;
 import kaaes.spotify.webapi.android.models.SavedTrack;
 import kaaes.spotify.webapi.android.models.Track;
@@ -23,6 +24,11 @@ import retrofit.client.Response;
 /**
  * Created by sroettering on 26.05.16.
  *
+ * This class converts every possible type of spotify data (playlist, song, album, artist and category)
+ * into one single type.
+ * It saves the original name, the id, the type of item and the audio features of the song(s)
+ * Would be nice to have gui operate based on this class...
+ *
  *
  * Example Audio Feature:
      "danceability": 0.735,
@@ -33,7 +39,7 @@ import retrofit.client.Response;
      "speechiness": 0.0461,
      "acousticness": 0.514,
      "instrumentalness": 0.0902,
-     "liveness": 0.159,
+     "liveness": 0.159, // most likely not useful
      "valence": 0.624,
      "tempo": 98.002,
      "type": "audio_features",
@@ -51,28 +57,31 @@ public class SpotifyItem {
 
     public String text;
     public String spotifyID;
-    public int type; // 0 = playlist; 1 = album; 2 = song; 3 = artist; 4 = category
+    public int type; // 0 = playlist; 1 = song; 2 = album; 3 = artist; 4 = category
     public AudioFeaturesTracks features;
+    public boolean featuresLoaded;
 
     private SpotifyManager spotifyManager = SpotifyManager.getInstance();
 
+    private SpotifyItem(int type, String id, String text) {
+        featuresLoaded = false;
+        this.type = type;
+        this.spotifyID = id;
+        this.text = text;
+    }
+
     public SpotifyItem(PlaylistSimple playlist) {
-        this.type = 0;
-        this.spotifyID = playlist.id;
-        this.text = playlist.name;
-        ArrayList<TrackSimple> tracks = new ArrayList<>();
-        getTracksForPlaylist(tracks, playlist.owner.id, spotifyID);
-        String ids = "";
-        for(TrackSimple track: tracks) {
-            ids += track.id + ",";
-        }
-        retrieveAudioFeaturesForTracks(ids);
+        this(0, playlist.id, playlist.name);
+        getTracksForPlaylist(playlist.owner.id, spotifyID);
+    }
+
+    public SpotifyItem(SavedTrack track) {
+        this(1, track.track.id, track.track.name);
+        retrieveAudioFeaturesForTracks(spotifyID);
     }
 
     public SpotifyItem(SavedAlbum album) {
-        this.type = 1;
-        this.spotifyID = album.album.id;
-        this.text = album.album.name;
+        this(2, album.album.id, album.album.name);
         String ids = "";
         for(TrackSimple track: album.album.tracks.items) {
             ids += track.id + ",";
@@ -80,29 +89,30 @@ public class SpotifyItem {
         retrieveAudioFeaturesForTracks(ids);
     }
 
-    public SpotifyItem(SavedTrack track) {
-        this.type = 2;
-        this.spotifyID = track.track.id;
-        this.text = track.track.name;
-        retrieveAudioFeaturesForTracks(spotifyID);
-    }
-
     public SpotifyItem(Artist artist) {
-        this.type = 3;
-        this.spotifyID = artist.id;
-        this.text = artist.name;
+        this(3, artist.id, artist.name);
         ArrayList<TrackSimple> tracks = getTracksForArtist(spotifyID);
         String ids = "";
         for(TrackSimple track: tracks) {
             ids += track.id + ",";
         }
+        retrieveAudioFeaturesForTracks(ids);
     }
 
-    public SpotifyItem(Category category) {
-        this.type = 4;
-        this.spotifyID = category.id;
-        this.text = category.name;
+    public SpotifyItem(final Category category) {
+        this(4, category.id, category.name);
+        spotifyManager.getSpotifyService().getPlaylistsForCategory(spotifyID, null, new Callback<PlaylistsPager>() {
+            @Override
+            public void success(PlaylistsPager playlistsPager, Response response) {
+                PlaylistSimple playlist = playlistsPager.playlists.items.get(0);
+                getTracksForPlaylist(playlist.owner.id, playlist.id);
+            }
 
+            @Override
+            public void failure(RetrofitError error) {
+                Log.d("Spotify", "Error while retrieving playlists for category: " + category.name + "; " + error.getMessage());
+            }
+        });
     }
 
     private void retrieveAudioFeaturesForTracks(String ids) {
@@ -110,6 +120,7 @@ public class SpotifyItem {
             @Override
             public void success(AudioFeaturesTracks audioFeaturesTracks, Response response) {
                 features = audioFeaturesTracks;
+                featuresLoaded = true;
             }
 
             @Override
@@ -119,13 +130,15 @@ public class SpotifyItem {
         });
     }
 
-    private void getTracksForPlaylist(final ArrayList<TrackSimple> tracks, String ownerID, String playlistID) {
+    private void getTracksForPlaylist(String ownerID, String playlistID) {
         spotifyManager.getSpotifyService().getPlaylist(ownerID, playlistID, new Callback<Playlist>() {
             @Override
             public void success(Playlist playlist, Response response) {
-                for (PlaylistTrack ptrack : playlist.tracks.items) {
-                    tracks.add(ptrack.track);
+                String ids = "";
+                for (PlaylistTrack track : playlist.tracks.items) {
+                    ids += track.track.id + ",";
                 }
+                retrieveAudioFeaturesForTracks(ids);
             }
 
             @Override

@@ -100,4 +100,24 @@
             android:src="@drawable/material_volume_up_24dp"
             android:onClick="onVolumeUpBtnClicked" />
     </LinearLayout>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_weight="0.05"
+        android:gravity="center_horizontal"
+        android:layout_gravity="center_horizontal">
+
+        <ToggleButton
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:text="New ToggleButton"
+            android:id="@+id/btn_listening"
+            android:textOn=""
+            android:textOff=""
+            android:background="@null"
+            android:button="@drawable/listening"
+            android:clickable="false" />
+    </LinearLayout>
 </LinearLayout>

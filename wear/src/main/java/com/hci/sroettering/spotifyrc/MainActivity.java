@@ -197,6 +197,8 @@ public class MainActivity extends WearableActivity implements CommunicationManag
             intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getApplication().getPackageName());
             intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1000);
             speechRecognizer.startListening(intent);
+            ToggleButton listeningBtn = (ToggleButton) findViewById(R.id.btn_listening);
+            listeningBtn.setChecked(true);
         } catch(Exception ex) {
             Log.d("MainActivity", "Bei der SpeechRecognizer Initialisierung ist ein Fehler aufgetreten");
         }
@@ -204,6 +206,8 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     private void stopListening() {
         if (speechRecognizer != null) {
+            ToggleButton listeningBtn = (ToggleButton) findViewById(R.id.btn_listening);
+            listeningBtn.setChecked(false);
             speechRecognizer.stopListening();
             speechRecognizer.cancel();
             speechRecognizer.destroy();

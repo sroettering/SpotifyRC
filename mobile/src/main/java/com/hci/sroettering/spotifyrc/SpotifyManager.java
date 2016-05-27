@@ -325,7 +325,9 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
     public void resume() {
         if(mPlayer.isInitialized()) {
             mPlayer.getPlayerState(SpotifyManager.this);
-            if(playerState != null && playerState.trackUri != null && playerState.trackUri != "") {
+            if(playerState != null && playerState.trackUri != null && playerState.trackUri != ""
+                    && !playerState.playing) {
+                // resume called on playing device apparently skips to next track (headphone support)
                 mPlayer.resume();
                 startTimer();
             }
@@ -540,7 +542,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
     }
 
 
-    // Observable Data Class
+    // Container which holds all the spotify data
     public class ListDataContainer {
 
         // Lists
@@ -550,12 +552,16 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
         private List<Artist> artists;
         private List<Category> categories;
 
+        // Lists with spotifyItems
+        private List<SpotifyItem>[] spotifyData;
+
         public ListDataContainer() {
             playlists = new ArrayList<>();
             songs = new ArrayList<>();
             albums = new ArrayList<>();
             artists = new ArrayList<>();
             categories = new ArrayList<>();
+            spotifyData = new ArrayList[5];
         }
 
         public List<PlaylistSimple> getPlaylists() { return playlists; }
@@ -566,22 +572,51 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
 
         public void setPlaylists(List<PlaylistSimple> list) {
             playlists = list;
+            ArrayList<SpotifyItem> tempList = new ArrayList<>();
+            for(PlaylistSimple playlist: playlists) {
+                tempList.add(new SpotifyItem(playlist));
+            }
+            spotifyData[0] = tempList;
         }
 
         public void setSongs(List<SavedTrack> list) {
             songs = list;
+            ArrayList<SpotifyItem> tempList = new ArrayList<>();
+            for(SavedTrack track: songs) {
+                tempList.add(new SpotifyItem(track));
+            }
+            spotifyData[1] = tempList;
         }
 
         public void setAlbums(List<SavedAlbum> list) {
             albums = list;
+            ArrayList<SpotifyItem> tempList = new ArrayList<>();
+            for(SavedAlbum album: albums) {
+                tempList.add(new SpotifyItem(album));
+            }
+            spotifyData[2] = tempList;
         }
 
         public void setArtists(List<Artist> list) {
             artists = list;
+            ArrayList<SpotifyItem> tempList = new ArrayList<>();
+            for(Artist artist: artists) {
+                tempList.add(new SpotifyItem(artist));
+            }
+            spotifyData[3] = tempList;
         }
 
         public void setCategories(List<Category> list) {
             categories = list;
+            ArrayList<SpotifyItem> tempList = new ArrayList<>();
+            for(Category category: categories) {
+                tempList.add(new SpotifyItem(category));
+            }
+            spotifyData[4] = tempList;
+        }
+
+        public List<SpotifyItem>[] getSpotifyData() {
+            return this.spotifyData;
         }
 
         public int getPosForPlaylistID(String id) {

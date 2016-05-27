@@ -12,6 +12,8 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
+import com.hci.sroettering.spotifyrc.voicecontrol.VoiceCommandConverter;
+
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -22,6 +24,7 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
     private PagerListFragmentAdapter plfa;
     private SeekBar seekBar;
     private CommunicationManager commManager;
+    private VoiceCommandConverter voiceConverter;
 
     private String curTrack;
     private String curArtist;
@@ -51,6 +54,8 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
         commManager.addListener(this);
         mSpotifyManager.setCommunicationManager(commManager);
 
+        voiceConverter = new VoiceCommandConverter();
+
         curArtist = "";
         curTrack = "";
         syncWatchGUI();
@@ -65,6 +70,10 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
 
     public void updateData(final List data, final int pagerPosition) {
         plfa.updateFragmentListData(data, pagerPosition);
+
+        // when new data arrived the voice command converter has to be updated as well
+        // could get data from parameter...
+        voiceConverter.setSpotifyData(SpotifyManager.getInstance().getLdc().getSpotifyData());
     }
 
     public void syncWatchGUI() {
@@ -129,6 +138,14 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
 
     public void nextTrack(View v) {
         mSpotifyManager.nextTrack();
+//        String[] testCommands = {
+//                "play Gute Laune bitte", "play bitte", "next", "next bitte",
+//                "play Tiesto secrets bitte", "shuffle bitte", "shuffle aus bitte", "shuffle an bitte",
+//                "an bitte", "aus, bitte", "playlist bitte"
+//        };
+//        for(String s: testCommands) {
+//            onTextCommandMessage(s);
+//        }
     }
 
     public void prevTrack(View v) {
@@ -139,6 +156,14 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
         boolean isEnabled = ((ToggleButton) v).isChecked();
         mSpotifyManager.shuffle(isEnabled);
         commManager.sendShuffle(isEnabled);
+    }
+
+    public void volumeUp() {
+
+    }
+
+    public void volumeDown() {
+
     }
 
 
@@ -190,6 +215,7 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
         } else if(splitMsg[0].equals("shuffle")) {
             mSpotifyManager.shuffle(splitMsg[1].equals("1"));
             ToggleButton btn = (ToggleButton) findViewById(R.id.btn_shuffle);
+            commManager.sendShuffle(splitMsg[1].equals("1"));
             btn.setChecked(splitMsg[1].equals("1"));
         } else if(splitMsg[0].equals("play")) {
             mSpotifyManager.play(splitMsg[1], splitMsg[2]);
@@ -200,7 +226,15 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
 
     @Override
     public void onTextCommandMessage(String msg) {
-        // do stuff
+        // command is sent from watch if it contains polite keyword, so this will always be true
+        if(voiceConverter.couldBeCommand(msg)) {
+            String command = voiceConverter.convertCommand(msg);
+            Log.d("MainActivity", "Converted Command: " + command);
+            if(!command.equals(""))
+                onCommandMessage(command);
+        } else {
+            Log.d("MainActivity", "\"" + msg + "\"" + " not recognized as command");
+        }
     }
 
     @Override

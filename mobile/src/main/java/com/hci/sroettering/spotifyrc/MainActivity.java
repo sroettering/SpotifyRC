@@ -137,15 +137,19 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
     }
 
     public void nextTrack(View v) {
-        mSpotifyManager.nextTrack();
-//        String[] testCommands = {
-//                "play Gute Laune bitte", "play bitte", "next", "next bitte",
-//                "play Tiesto secrets bitte", "shuffle bitte", "shuffle aus bitte", "shuffle an bitte",
-//                "an bitte", "aus, bitte", "playlist bitte"
-//        };
-//        for(String s: testCommands) {
-//            onTextCommandMessage(s);
-//        }
+        //mSpotifyManager.nextTrack();
+        String[] testCommands = {
+//                "play Gute Laune bitte",
+//                "play bitte",
+//                "next", "next bitte",
+                "play Tiësto secrets bitte",
+//                "shuffle bitte", "shuffle aus bitte", "shuffle an bitte",
+//                "an bitte", "aus, bitte", "playlist bitte",
+//                "ich wünsche mir hardwell bitte"
+        };
+        for(String s: testCommands) {
+            onTextCommandMessage(s);
+        }
     }
 
     public void prevTrack(View v) {
@@ -230,8 +234,8 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
         if(voiceConverter.couldBeCommand(msg)) {
             String command = voiceConverter.convertCommand(msg);
             Log.d("MainActivity", "Converted Command: " + command);
-            if(!command.equals(""))
-                onCommandMessage(command);
+            //if(!command.equals(""))
+                //onCommandMessage(command);
         } else {
             Log.d("MainActivity", "\"" + msg + "\"" + " not recognized as command");
         }

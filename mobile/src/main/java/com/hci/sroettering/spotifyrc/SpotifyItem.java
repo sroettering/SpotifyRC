@@ -67,7 +67,7 @@ public class SpotifyItem {
         featuresLoaded = false;
         this.type = type;
         this.spotifyID = id;
-        this.text = text;
+        this.text = text.toLowerCase();
     }
 
     public SpotifyItem(PlaylistSimple playlist) {
@@ -75,8 +75,9 @@ public class SpotifyItem {
         getTracksForPlaylist(playlist.owner.id, spotifyID);
     }
 
+    // saving the artist name in the text, makes it possible to find non saved artists
     public SpotifyItem(SavedTrack track) {
-        this(1, track.track.id, track.track.name);
+        this(1, track.track.id, track.track.artists.get(0).name + " - " + track.track.name);
         retrieveAudioFeaturesForTracks(spotifyID);
     }
 

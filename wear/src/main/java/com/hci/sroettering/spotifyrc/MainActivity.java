@@ -98,11 +98,11 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     private void updateDisplay() {
         if (isAmbient()) {
-            //Log.d("MainActivity", "isAmbient() : true");
+            Log.d("MainActivity", "isAmbient() : true");
             BoxInsetLayout layout = (BoxInsetLayout) findViewById(R.id.parent_layout);
             layout.setBackgroundColor(getResources().getColor(R.color.black));
         } else {
-            //Log.d("MainActivity", "isAmbient() : false");
+            Log.d("MainActivity", "isAmbient() : false");
             BoxInsetLayout layout = (BoxInsetLayout) findViewById(R.id.parent_layout);
             layout.setBackgroundColor(getResources().getColor(R.color.primary));
         }
@@ -141,9 +141,6 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     }
 
     public void onVolumeUpBtnClicked(View v) {
-//        //only for testing voice recognition
-//        String result = keywordDictionary.getMostPropableCommandForText("play gute laune bitte");
-//        Log.d("MainActivity-Test", "Result: " + result);
         commManager.sendVolumeUp();
     }
 
@@ -189,6 +186,16 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
 
     // Voice Recognition Code
+    private void setListeningButtonChecked(boolean checked) {
+        ToggleButton listeningBtn = (ToggleButton) findViewById(R.id.btn_listening);
+        listeningBtn.setChecked(checked);
+    }
+
+    @Override
+    public void onListeningError() {
+        setListeningButtonChecked(false);
+    }
+
     private void startListening() {
         try {
             initSpeech();
@@ -196,18 +203,19 @@ public class MainActivity extends WearableActivity implements CommunicationManag
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
             intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getApplication().getPackageName());
             intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1000);
+            intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
             speechRecognizer.startListening(intent);
-            ToggleButton listeningBtn = (ToggleButton) findViewById(R.id.btn_listening);
-            listeningBtn.setChecked(true);
+            setListeningButtonChecked(true);
         } catch(Exception ex) {
             Log.d("MainActivity", "Bei der SpeechRecognizer Initialisierung ist ein Fehler aufgetreten");
         }
     }
 
-    private void stopListening() {
+    @Override
+    public void stopListening() {
         if (speechRecognizer != null) {
-            ToggleButton listeningBtn = (ToggleButton) findViewById(R.id.btn_listening);
-            listeningBtn.setChecked(false);
+            Log.d("VRListener", "stop listening");
+            setListeningButtonChecked(false);
             speechRecognizer.stopListening();
             speechRecognizer.cancel();
             speechRecognizer.destroy();
@@ -230,8 +238,9 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     // IVoiceControl
     @Override
     public void processVoiceCommands(String... voiceCommands) {
+        stopListening();
         String s = voiceCommands[0].toLowerCase();
-        //Log.d("KeywordDictionary", "Recorded string: " + s);
+        Log.d("VRListener", "Recorded string: " + s);
         if(s.contains("bitte")) { // politeness keyword
             commManager.sendTextCommand(s);
         } else {

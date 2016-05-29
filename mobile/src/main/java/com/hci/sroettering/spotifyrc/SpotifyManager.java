@@ -18,6 +18,7 @@ import com.spotify.sdk.android.player.Spotify;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -72,6 +73,8 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
     private Player mPlayer;
     private PlayerState playerState;
     private boolean isShuffle;
+    private Map<String, Object> options;
+    private final int pagerLimit = 50; // maximum is 50
 
     // List Info
     private ListDataContainer ldc;
@@ -87,6 +90,8 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
         isShuffle = false;
         ldc = new ListDataContainer();
         currentQueue = new HashMap<String, TrackSimple>();
+        options = new HashMap<>();
+        options.put(SpotifyService.LIMIT, pagerLimit);
     }
 
     public static SpotifyManager getInstance() {
@@ -164,7 +169,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
     }
 
     private void initPlaylists() {
-        spotify.getMyPlaylists(new Callback<Pager<PlaylistSimple>>() {
+        spotify.getMyPlaylists(options, new Callback<Pager<PlaylistSimple>>() {
             @Override
             public void success(Pager<PlaylistSimple> playlistSimplePager, Response response) {
                 ldc.setPlaylists(playlistSimplePager.items);
@@ -180,7 +185,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
     }
 
     private void initSongs() {
-        spotify.getMySavedTracks(new Callback<Pager<SavedTrack>>() {
+        spotify.getMySavedTracks(options, new Callback<Pager<SavedTrack>>() {
             @Override
             public void success(Pager<SavedTrack> savedTrackPager, Response response) {
                 ldc.setSongs(savedTrackPager.items);
@@ -196,7 +201,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
     }
 
     private void initAlbums() {
-        spotify.getMySavedAlbums(new Callback<Pager<SavedAlbum>>() {
+        spotify.getMySavedAlbums(options, new Callback<Pager<SavedAlbum>>() {
             @Override
             public void success(Pager<SavedAlbum> savedAlbumPager, Response response) {
                 ldc.setAlbums(savedAlbumPager.items);
@@ -212,7 +217,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
     }
 
     private void initArtists() {
-        spotify.getFollowedArtists(new Callback<ArtistsCursorPager>() {
+        spotify.getFollowedArtists(options, new Callback<ArtistsCursorPager>() {
             @Override
             public void success(ArtistsCursorPager artistCursorPager, Response response) {
                 ldc.setArtists(artistCursorPager.artists.items);
@@ -228,7 +233,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
     }
 
     private void initCategories() {
-        spotify.getCategories(null, new Callback<CategoriesPager>() {
+        spotify.getCategories(options, new Callback<CategoriesPager>() {
             @Override
             public void success(CategoriesPager categoriesPager, Response response) {
                 ldc.setCategories(categoriesPager.categories.items);
@@ -386,7 +391,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
         for(SavedTrack track: allTracks) {
             for(ArtistSimple a: track.track.artists) {
                 if (a.id.equals(artist.id)) {
-                    Log.d("loadArtist", "found track for artist: " + artist.name);
+                    //Log.d("loadArtist", "found track for artist: " + artist.name);
                     artistTracks.add(track.track);
                 }
             }

@@ -16,6 +16,13 @@ public class VoiceRecognitionListener implements RecognitionListener {
 
     private IVoiceControl listener; // Must run in main thread
 
+    private String[] errorMessages = {
+            "Unknown Error", "Network operation timed out", "Other network related errors",
+            "Audio recording error", "Server sends error status", "Other client side errors",
+            "No speech input", "No recognition result matched", "RecognitionService busy",
+            "Insufficient permissions"
+    };
+
     // Singleton private constructor
     private VoiceRecognitionListener() {};
 
@@ -60,9 +67,10 @@ public class VoiceRecognitionListener implements RecognitionListener {
     @Override
     public void onError(int error) {
         if (listener != null) {
+            listener.onListeningError();
             listener.restartListeningService();
         }
-        Log.d("VRListener", "Got Error: " + error);
+        Log.d("VRListener", "Got Error: " + errorMessages[error]);
     }
 
     @Override
@@ -87,6 +95,6 @@ public class VoiceRecognitionListener implements RecognitionListener {
 
     @Override
     public void onEvent(int eventType, Bundle params) {
-
+        Log.d("VRListener", "onEvent: " + eventType);
     }
 }

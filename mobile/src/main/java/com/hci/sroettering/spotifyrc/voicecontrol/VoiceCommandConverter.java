@@ -63,138 +63,100 @@ public class VoiceCommandConverter {
 
     // couldBeCommand() should have been called beforehand
     public String convertCommand(String text) {
-        String result = "";
-        KeywordDictionary.resetTokenList();
+        Command command = new Command(text);
 
         // 1. delete polite keyword and special characters for safety measures
-        String cleanText = text.replace(KeywordDictionary.politeness_keyword, "")
-                .replaceAll("[^a-zA-Z0-9üöä ]+","")
-                .toLowerCase()
-                .trim();
-        Log.d("VCC", "clean text: " + cleanText);
+        command.cleanText();
+        Log.d("VCC", "clean text: " + command.text);
 
         // 2. check if command is of focused nature, i.e. text contains a player control command
-        if(KeywordDictionary.containsFocusedKeyword(cleanText)) {
-            //Log.d("VCC", "text contains focused keyword");
+        if(KeywordDictionary.containsFocusedKeyword(command)) {
+            Log.d("VCC", "text contains focused keyword");
+            convertFocusedCommand(command);
 
-            // 2.1 check for simple focused command, i.e. commands without any extra "parameters" (or extras)
-            Token simpleFocusedToken = getSimpleFocusedTokenIfAny();
-            if(simpleFocusedToken != null) {
-                //Log.d("VCC", "text contains simple focused keyword");
-                result = getCommandForSimpleToken(simpleFocusedToken);
-                return result;
-            }
-            // 2.2 focused command seems to contain extras (shuffle or play). Convert those extras and append to result
-            Token complexFocusedToken = getComplexFocusedTokenIfAny();
-            if(complexFocusedToken != null) {
-                //Log.d("VCC", cleanText + " contains complex focused keyword");
-                if(complexFocusedToken.type == Token.Type.SHUFFLE) {
-                    //Log.d("VCC", "text contains shuffle keyword");
-                    Token onOffToken = getOnOrOffTokenIfAny();
-                    // when there is just a shuffle token, it is assumed the user wants to activate shuffle
-                    if(onOffToken != null && onOffToken.type == Token.Type.NEGATIVE) {
-                        result = "shuffle;0";
-                    } else {
-                        result = "shuffle;1";
-                    }
-                } else if(complexFocusedToken.type == Token.Type.PLAY && KeywordDictionary.containsExtras(cleanText)) {
-                    // a play command needs some extra information about what to play
-                    Token extraToken = getExtraTokenIfAny(); // should not be null because cleanText contains extras
-                    //Log.d("VCC", "text contains play keyword with extras: " + extraToken.keyword);
-                    result = "play";
-                    result += convertExtrasToCommand(extraToken.keyword);
-                    return result;
-                } else { // no suitable command was found, most likely because play had no extras
-                    return result;
-                }
-            }
-
-
-        } else if(KeywordDictionary.containsCasualKeyword(cleanText)) {
-            Log.d("VCC", "text contains casual keyword");
-            // 3. check if command is of casual nature, i.e. an audio feature is directly mentioned
+        } else {
+            // 3. command is of casual nature, i.e. an audio feature is directly mentioned
             // or keywords positivley/negatively describing a specific audio feature are mentioned
             // or user just wants a different song
+            Log.d("VCC", "text is casual");
+            convertCasualCommand(command);
 
-            // 3.1 audio feature is directly mentioned
-
-            // 3.2 audio feature is indirectly mentioned
-
-            // 3.3 no audio feature is mentioned -> just play next track or random other spotifyItem
         }
         // 4. someone said the polite keyword by accident...do nothing
 
-        return result;
+        return command.resultingCommand;
     }
 
-    private Token getSimpleFocusedTokenIfAny() {
-        for(Token token: KeywordDictionary.tokenList) {
-            // token.type values from 0 to 5 belong to simple commands
-            if(token.type.getValue() >= 0 && token.type.getValue() < 6) return token;
+    private void convertFocusedCommand(Command command) {
+
+        // 2.1 check for simple focused command, i.e. commands without any extra "parameters" (or extras)
+        if(command.hasSimpleFocusedToken()) {
+            //Log.d("VCC", "text contains simple focused keyword");
+            convertSimpleFocusedCommand(command);
+
+        } else if(command.hasComplexFocusedToken()) {
+            // 2.2 focused command seems to contain extras (shuffle or play). Convert those extras and append to result
+
+            //Log.d("VCC", cleanText + " contains complex focused keyword");
+            if(command.getComplexFocusedToken().type == Token.Type.SHUFFLE) {
+                //Log.d("VCC", "text contains shuffle keyword");
+                Token onOffToken = command.getOnOrOffToken();
+                // when there is just a shuffle token, it is assumed the user wants to activate shuffle
+                if(onOffToken != null && onOffToken.type == Token.Type.NEGATIVE) {
+                    command.resultingCommand = "shuffle;0";
+                } else {
+                    command.resultingCommand = "shuffle;1";
+                }
+            } else if(command.getComplexFocusedToken().type == Token.Type.PLAY) {
+                // a play command needs some extra information about what to play
+                Token extraToken = command.getExtraToken(); // should not be null because cleanText contains extras
+                Log.d("VCC", "text contains play keyword with extras: " + extraToken.keyword);
+                command.resultingCommand = "play";
+                if(extraToken != null) {
+                    command.resultingCommand += convertExtrasToCommand(extraToken.keyword);
+                }
+            } else { // no suitable command was found, most likely because play had no extras
+                Log.d("VCC", "Unknown complex focused command");
+            }
         }
-        return null;
+
     }
 
-    private Token getComplexFocusedTokenIfAny() {
-        for(Token token: KeywordDictionary.tokenList) {
-            // token.type values from 8 to 9 belong to complex commands (play and shuffle)
-            if(token.type.getValue() >= 8 && token.type.getValue() < 10) return token;
-        }
-        return null;
-    }
-
-    private Token getOnOrOffTokenIfAny() {
-        for(Token token: KeywordDictionary.tokenList) {
-            // token.type values from 6 to 7 belong to complex commands (play and shuffle)
-            if(token.type.getValue() >= 6 && token.type.getValue() < 8) return token;
-        }
-        return null;
-    }
-
-    private Token getExtraTokenIfAny() {
-        for(Token token: KeywordDictionary.tokenList) {
-            if(token.type == Token.Type.EXTRA) return token;
-        }
-        return null;
-    }
-
-    private String getCommandForSimpleToken(Token simpleToken) {
-        String command = "";
-        switch (simpleToken.type) {
-            case PAUSE: command = "pause";
+    private void convertSimpleFocusedCommand(Command command) {
+        switch (command.getSimpleFocusedToken().type) {
+            case PAUSE: command.resultingCommand = "pause";
                 break;
-            case RESUME: command = "resume";
+            case RESUME: command.resultingCommand = "resume";
                 break;
-            case NEXT: command = "next";
+            case NEXT: command.resultingCommand = "next";
                 break;
-            case PREV: command = "prev";
+            case PREV: command.resultingCommand = "prev";
                 break;
-            case VOLUMEUP: command = "volumeUp";
+            case VOLUMEUP: command.resultingCommand = "volumeUp";
                 break;
-            case VOLUMEDOWN: command = "volumeDown";
+            case VOLUMEDOWN: command.resultingCommand = "volumeDown";
                 break;
         }
-        return command;
     }
 
     private String convertExtrasToCommand(String text) {
         String extraCommand = ";";
-        //Log.d("VoiceCommandConverter", "found extras: " + rText);
 
         int minimalDistance = Integer.MAX_VALUE;
         SpotifyItem mostSimilarItem = null;
         // search spotify data for the given text
-        for(int i = 0; i < spotifyData.length; i++) {
+        outer: for(int i = 0; i < spotifyData.length; i++) {
             if(spotifyData[i] == null) {
                 continue;
             }
             for(SpotifyItem item: spotifyData[i]) {
-                int distance = computeMinimalDistanceWithSubstrings(item.text.toLowerCase(), text);
-                //Log.d("VoiceCommandConverter", "data[" + i + "] text: " + item.text.toLowerCase() + "; distance: " + distance);
+                int distance = computeMinimalDistanceWithSubstrings(item.text, text);
+                Log.d("VoiceCommandConverter", "data[" + i + "] text: " + item.text + "; distance: " + distance);
                 if(distance < minimalDistance) {
                     minimalDistance = distance;
                     mostSimilarItem = item;
                 }
+                if(minimalDistance < 0) break outer; // quick exit
             }
         }
         //Log.d("VoiceCommandConverter", "found item with text: " + mostSimilarItem.text + " and minimal distance: " + minimalDistance);
@@ -202,17 +164,30 @@ public class VoiceCommandConverter {
         return extraCommand;
     }
 
+    private void convertCasualCommand(Command command) {
+        // 3.1 audio feature is directly mentioned
+        
+        // 3.2 audio feature is indirectly mentioned
+
+        // 3.3 no audio feature is mentioned -> just play next track or random other spotifyItem
+    }
+
     private int computeMinimalDistanceWithSubstrings(String text, String textToLookFor) {
-        String cleanText = text.replaceAll("[^a-zA-Z0-9 ]+","").trim();
+        String cleanText = text.replaceAll("[^a-zA-Z0-9äöüë ]+","").trim();
+        cleanText = cleanText.replaceAll(" +", " "); // replace multiple spaces with one
+
+        if(cleanText.equals(textToLookFor)) return -1; // quick exit; -1 to prefer exact matches over others
+
         int minimumDistance = Integer.MAX_VALUE;
-        //Log.d("VoiceCommandConverter", "Substrings cleanText: " + cleanText);
+        Log.d("VoiceCommandConverter", "cleanText: " + cleanText + "; textToLookFor: " + textToLookFor);
         if(text.length() < textToLookFor.length()) {
             return computeLevenshteinDistance(cleanText, textToLookFor);
         }
 
         String curSubString = "";
         for(int i = 0; i < cleanText.length() - textToLookFor.length() + 1; i++) { // +1 in case of same lengths
-            curSubString = cleanText.substring(i, i+textToLookFor.length());
+            curSubString = cleanText.substring(i, i + textToLookFor.length());
+            if(curSubString.equals(textToLookFor)) return 0; // quick exit if item was found
             minimumDistance = Math.min(minimumDistance, computeLevenshteinDistance(curSubString, textToLookFor));
         }
         return minimumDistance;

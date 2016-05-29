@@ -9,4 +9,8 @@ public interface IVoiceControl {
 
     public void restartListeningService();
 
+    public void onListeningError();
+
+    public void stopListening();
+
 }

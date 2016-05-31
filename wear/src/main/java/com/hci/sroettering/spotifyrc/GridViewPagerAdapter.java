@@ -71,7 +71,6 @@ public class GridViewPagerAdapter extends GridPagerAdapter implements WearableLi
             }
         }
         pageData[type] = dataList;
-        mActivity.onDataChanged();
         rightListViewAdapter.notifyDataSetChanged();
     }
 

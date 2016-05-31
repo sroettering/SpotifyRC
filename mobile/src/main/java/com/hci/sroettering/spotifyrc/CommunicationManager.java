@@ -60,8 +60,9 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
     }
 
     private void init() {
+        Log.d("CommunicationManager", "Initializing GoogleApiClient");
         mApiClient = new GoogleApiClient.Builder(mContext)
-                .addApi(Wearable.API)
+                .addApiIfAvailable(Wearable.API)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .build();

@@ -62,6 +62,33 @@ public class Command {
         return null;
     }
 
+    public boolean hasCasualAudioFeatureToken() {
+        return getCasualAudioFeatureToken() != null;
+    }
+
+    public Token getCasualAudioFeatureToken() {
+        for(Token token: tokenList) {
+            if(token.type == Token.Type.CASUAL_AUDIO_FEATURE) return token;
+        }
+        return null;
+    }
+
+    public Token getMultiplierToken() {
+        for(Token token: tokenList) {
+            // token.type values from 12 to 14 belong to casual multiplier token (weak, strong and neutral)
+            if(token.type.getValue() >= 12 && token.type.getValue() < 15) return token;
+        }
+        return null;
+    }
+
+    public Token getDirectionToken() {
+        for(Token token: tokenList) {
+            // token.type values from 15 to 16 belong to casual direction token (positive or negative)
+            if(token.type.getValue() >= 15 && token.type.getValue() < 17) return token;
+        }
+        return null;
+    }
+
     public void addToken(String keyword, Token.Type type) {
         tokenList.add(new Token(keyword.trim(), type));
         text = text.replace(keyword, "");

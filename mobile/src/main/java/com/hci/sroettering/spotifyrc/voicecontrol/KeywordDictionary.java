@@ -71,44 +71,50 @@ public class KeywordDictionary {
 
     // TODO: maybe its enough to demand, that every casual command has to look like "etwas ... bitte"
     public static final String[] casual_audioFeature_keywords = {
-            "tempo", "geschwindigkeit", "speed", "schnelligkeit", // - tempo
-            "stimmung", "mood", // - valence (positivity/negativity)
+            "tempo", // - tempo
+            "stimmung", // - valence (positivity/negativity)
             "lautstärke", // - loudness
-            "energie", "power", // - energy
-            "tanzbarkeit", "zum tanzen" // - danceability
+            "energie", // - energy
+            "tanzbarkeit" // - danceability
     };
 
-    public static final String[] casual_negative_general_keywords = {
-            "weniger", "zu viel"
+    public static final String[] casual_weak_keywords = {
+            "etwas"
     };
 
-    public static final String[] casual_positive_general_keywords = {
-            "mehr", "zu wenig", "besser", "bessere"
+    public static final String[] casual_strong_keywords = {
+            "viel"
     };
 
-    public static final String[] casual_indirect_negative_tempo_keywords = {
-            "langsamer", "langsameres", "langsamere", "zu schnell"
+    public static final String[] casual_negative_keywords = {
+            "weniger"
     };
 
-    public static final String[] casual_indirect_positive_tempo_keywords = {
-            "schneller", "schnelleres", "schnellere", "zu langsam", "zu lahm"
+    public static final String[] casual_positive_keywords = {
+            "mehr", "besser", "bessere"
     };
 
-    public static final String[] casual_indirect_negative_valence_keywords = {
-            "traurigeres", "traurigere", "zu fröhlich", "zu positiv", "negativer", "negativeres"
-    };
+//    public static final String[] casual_indirect_negative_tempo_keywords = {
+//            "langsamer", "langsameres", "langsamere", "zu schnell"
+//    };
+//
+//    public static final String[] casual_indirect_positive_tempo_keywords = {
+//            "schneller", "schnelleres", "schnellere", "zu langsam", "zu lahm"
+//    };
+//
+//    public static final String[] casual_indirect_negative_valence_keywords = {
+//            "traurigeres", "traurigere", "zu fröhlich", "zu positiv", "negativer", "negativeres"
+//    };
+//
+//    public static final String[] casual_indirect_positive_valence_keywords = {
+//            "fröhlicher", "fröhlicheres", "zu traurig", "zu negativ", "positiver", "positiveres"
+//    };
 
-    public static final String[] casual_indirect_positive_valence_keywords = {
-            "fröhlicher", "fröhlicheres", "zu traurig", "zu negativ", "positiver", "positiveres"
-    };
-
-
-
-    // the user demands a decrease of a certain audio feature
-    public static final String[] casual_negative_adjectives_keywords = {
-            "chilliger", "chilligeres", "ruhiger", "ruhigeres", "langsamer", "langsameres", "zu schnell",
-            "weniger gesang", "leiser", "leiseres", "traurigere", "traurigeres", "trauriger", "zu hart"
-    };
+//    // the user demands a decrease of a certain audio feature
+//    public static final String[] casual_negative_adjectives_keywords = {
+//            "chilliger", "chilligeres", "ruhiger", "ruhigeres", "langsamer", "langsameres", "zu schnell",
+//            "weniger gesang", "leiser", "leiseres", "traurigere", "traurigeres", "trauriger", "zu hart"
+//    };
 
     public static final String politeness_keyword = "bitte";
 
@@ -162,6 +168,11 @@ public class KeywordDictionary {
 
     public static void tokenizeCasualCommand(Command command) {
         isKeywordInList(casual_audioFeature_keywords, command, Token.Type.CASUAL_AUDIO_FEATURE);
+        boolean containsCasualWeak = isKeywordInList(casual_weak_keywords, command, Token.Type.CASUAL_WEAK);
+        boolean containsCasualStrong = isKeywordInList(casual_strong_keywords, command, Token.Type.CASUAL_STRONG);
+        if(!containsCasualWeak && !containsCasualStrong) command.addToken("", Token.Type.CASUAL_NEUTRAL);
+        isKeywordInList(casual_negative_keywords, command, Token.Type.CASUAL_NEGATIVE);
+        isKeywordInList(casual_positive_keywords, command, Token.Type.CASUAL_POSITIVE);
     }
 
     // Util method

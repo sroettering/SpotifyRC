@@ -6,6 +6,8 @@ import android.os.AsyncTask;
 import android.util.Log;
 import android.widget.ImageView;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.HashMap;
@@ -33,6 +35,11 @@ public class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
         try {
             InputStream in = new java.net.URL(urldisplay).openStream();
             mIcon11 = BitmapFactory.decodeStream(in);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            mIcon11.compress(Bitmap.CompressFormat.JPEG, 100, out);
+            mIcon11 = BitmapFactory.decodeStream(new ByteArrayInputStream(out.toByteArray()));
+            out.close();
+            in.close();
         } catch (Exception e) {
             Log.e("Error", e.getMessage());
             e.printStackTrace();

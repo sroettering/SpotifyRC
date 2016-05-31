@@ -58,13 +58,10 @@ public class SpotifyItem {
     public String text;
     public String spotifyID;
     public int type; // 0 = playlist; 1 = song; 2 = album; 3 = artist; 4 = category
-    public AudioFeaturesTracks features;
-    public boolean featuresLoaded;
 
     private SpotifyManager spotifyManager = SpotifyManager.getInstance();
 
     private SpotifyItem(int type, String id, String text) {
-        featuresLoaded = false;
         this.type = type;
         this.spotifyID = id;
         this.text = text.toLowerCase();
@@ -72,97 +69,23 @@ public class SpotifyItem {
 
     public SpotifyItem(PlaylistSimple playlist) {
         this(0, playlist.id, playlist.name);
-        getTracksForPlaylist(playlist.owner.id, spotifyID);
     }
 
     // saving the artist name in the text, makes it possible to find non saved artists
     public SpotifyItem(SavedTrack track) {
         this(1, track.track.id, track.track.artists.get(0).name + " - " + track.track.name);
-        retrieveAudioFeaturesForTracks(spotifyID);
     }
 
     public SpotifyItem(SavedAlbum album) {
         this(2, album.album.id, album.album.name);
-        String ids = "";
-        for(TrackSimple track: album.album.tracks.items) {
-            ids += track.id + ",";
-        }
-        retrieveAudioFeaturesForTracks(ids);
     }
 
     public SpotifyItem(Artist artist) {
         this(3, artist.id, artist.name);
-        ArrayList<TrackSimple> tracks = getTracksForArtist(spotifyID);
-        String ids = "";
-        for(TrackSimple track: tracks) {
-            ids += track.id + ",";
-        }
-        retrieveAudioFeaturesForTracks(ids);
     }
 
     public SpotifyItem(final Category category) {
         this(4, category.id, category.name);
-        spotifyManager.getSpotifyService().getPlaylistsForCategory(spotifyID, null, new Callback<PlaylistsPager>() {
-            @Override
-            public void success(PlaylistsPager playlistsPager, Response response) {
-                PlaylistSimple playlist = playlistsPager.playlists.items.get(0);
-                getTracksForPlaylist(playlist.owner.id, playlist.id);
-            }
-
-            @Override
-            public void failure(RetrofitError error) {
-                Log.d("Spotify", "Error while retrieving playlists for category: " + category.name + "; " + error.getMessage());
-            }
-        });
-    }
-
-    private void retrieveAudioFeaturesForTracks(String ids) {
-        spotifyManager.getSpotifyService().getTracksAudioFeatures(ids, new Callback<AudioFeaturesTracks>() {
-            @Override
-            public void success(AudioFeaturesTracks audioFeaturesTracks, Response response) {
-                features = audioFeaturesTracks;
-                featuresLoaded = true;
-            }
-
-            @Override
-            public void failure(RetrofitError error) {
-                Log.d("Spotify", "Error while retrieving audio features: " + error.getMessage());
-            }
-        });
-    }
-
-    private void getTracksForPlaylist(String ownerID, String playlistID) {
-        spotifyManager.getSpotifyService().getPlaylist(ownerID, playlistID, new Callback<Playlist>() {
-            @Override
-            public void success(Playlist playlist, Response response) {
-                String ids = "";
-                for (PlaylistTrack track : playlist.tracks.items) {
-                    ids += track.track.id + ",";
-                }
-                retrieveAudioFeaturesForTracks(ids);
-            }
-
-            @Override
-            public void failure(RetrofitError error) {
-                Log.d("SpotifyManager", "Error retrieving tracks for playlist: " + error.getMessage());
-            }
-        });
-    }
-
-    private ArrayList<TrackSimple> getTracksForArtist(String id) {
-        SpotifyManager.ListDataContainer ldc = spotifyManager.getLdc();
-        List<SavedTrack> allTracks = ldc.getSongs();
-        ArrayList<TrackSimple> artistTracks = new ArrayList<>();
-
-        //filter songs by artist
-        for(SavedTrack track: allTracks) {
-            for(ArtistSimple a: track.track.artists) {
-                if (a.id.equals(id)) {
-                    artistTracks.add(track.track);
-                }
-            }
-        }
-        return artistTracks;
     }
 
 }

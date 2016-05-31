@@ -1,7 +1,11 @@
 package com.hci.sroettering.spotifyrc;
 
+import android.content.Context;
 import android.content.Intent;
+import android.hardware.display.DisplayManager;
+import android.os.BatteryManager;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.support.wearable.activity.WearableActivity;
@@ -24,6 +28,9 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     private CommunicationManager commManager;
 
     private SpeechRecognizer speechRecognizer;
+    private long listeningStartTime;
+    private long currentListeningTime;
+    private final long listeningTimeMax = 30000; // ms
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,9 +53,8 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         commManager.sendDataRequest();
 
         VoiceRecognitionListener.getInstance().setListener(this);
-        if(!isAmbient()) {
-            startListening();
-        }
+        currentListeningTime = 0;
+        listeningStartTime = -1;
     }
 
     @Override
@@ -106,10 +112,6 @@ public class MainActivity extends WearableActivity implements CommunicationManag
             BoxInsetLayout layout = (BoxInsetLayout) findViewById(R.id.parent_layout);
             layout.setBackgroundColor(getResources().getColor(R.color.primary));
         }
-    }
-
-    public void onDataChanged() {
-        List[] data = pagerAdapter.getData();
     }
 
     // onClick Methods
@@ -197,6 +199,18 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     }
 
     private void startListening() {
+        if(listeningStartTime != -1) {
+            currentListeningTime = System.currentTimeMillis() - listeningStartTime;
+        } else {
+            listeningStartTime = System.currentTimeMillis();
+        }
+        Log.d("MainAcitivity", "listeningStartTime: " + listeningStartTime + "; currentListeningTime: " + currentListeningTime);
+        if(currentListeningTime >= listeningTimeMax) {
+            listeningStartTime = -1;
+            currentListeningTime = 0;
+            return;
+        }
+
         try {
             initSpeech();
             Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
@@ -225,7 +239,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     private void initSpeech() {
         if (speechRecognizer == null) {
-            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
+            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(getApplicationContext());
             if (!SpeechRecognizer.isRecognitionAvailable(getApplicationContext())) {
                 Toast.makeText(getApplicationContext(), "Speech Recognition is not available",
                         Toast.LENGTH_LONG).show();
@@ -238,7 +252,6 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     // IVoiceControl
     @Override
     public void processVoiceCommands(String... voiceCommands) {
-        stopListening();
         String s = voiceCommands[0].toLowerCase();
         Log.d("VRListener", "Recorded string: " + s);
         if(s.contains("bitte")) { // politeness keyword

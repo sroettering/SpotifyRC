@@ -29,6 +29,18 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
     private String curTrack;
     private String curArtist;
 
+    // hardcoded min and max values for audio features
+    private final float minTempo = 0f;
+    private final float maxTempo = 235f;
+    private final float minValence = 0f;
+    private final float maxValence = 1f;
+    private final float minLoudness = -0.5f;
+    private final float maxLoudness = -17f;
+    private final float minEnergy = 0f;
+    private final float maxEnergy = 1f;
+    private final float minDanceability = 0f;
+    private final float maxDanceability = 1f;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -44,7 +56,7 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
         seekBar = (SeekBar) findViewById(R.id.seekBar_track);
         seekBar.setProgress(0);
 
-        Log.d("MainActivity", "initializing SpotifyManager");
+        Log.d("MainActivity", "starting SpotifyManager");
         mSpotifyManager = SpotifyManager.getInstance();
         mSpotifyManager.setContext(this);
         mSpotifyManager.login();
@@ -137,19 +149,20 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
     }
 
     public void nextTrack(View v) {
-        //mSpotifyManager.nextTrack();
-        String[] testCommands = {
-//                "play Gute Laune bitte",
-//                "play bitte",
-//                "next", "next bitte",
-                "play Tiësto secrets bitte",
-//                "shuffle bitte", "shuffle aus bitte", "shuffle an bitte",
-//                "an bitte", "aus, bitte", "playlist bitte",
-//                "ich wünsche mir hardwell bitte"
-        };
-        for(String s: testCommands) {
-            onTextCommandMessage(s);
-        }
+        mSpotifyManager.nextTrack();
+        //mSpotifyManager.createFeatureSpreadSheet();
+//        String[] testCommands = {
+////                "play Gute Laune bitte",
+////                "play bitte",
+////                "next", "next bitte",
+//                "play Tiësto secrets bitte",
+////                "shuffle bitte", "shuffle aus bitte", "shuffle an bitte",
+////                "an bitte", "aus, bitte", "playlist bitte",
+////                "ich wünsche mir hardwell bitte"
+//        };
+//        for(String s: testCommands) {
+//            onTextCommandMessage(s);
+//        }
     }
 
     public void prevTrack(View v) {
@@ -163,11 +176,11 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
     }
 
     public void volumeUp() {
-
+        mSpotifyManager.turnVolumeUp();
     }
 
     public void volumeDown() {
-
+        mSpotifyManager.turnVolumeDown();
     }
 
 
@@ -213,9 +226,9 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
             ToggleButton btn = (ToggleButton) findViewById(R.id.btn_play);
             btn.setChecked(true);
         } else if(msg.equals("volumeUp")) {
-            // TODO
+            volumeUp();
         } else if(msg.equals("volumeDown")) {
-            // TODO
+            volumeDown();
         } else if(splitMsg[0].equals("shuffle")) {
             mSpotifyManager.shuffle(splitMsg[1].equals("1"));
             ToggleButton btn = (ToggleButton) findViewById(R.id.btn_shuffle);
@@ -225,6 +238,8 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
             mSpotifyManager.play(splitMsg[1], splitMsg[2]);
             ToggleButton btn = (ToggleButton) findViewById(R.id.btn_play);
             btn.setChecked(true);
+        } else if(splitMsg[0].equals("casual")) {
+            evaluateCasualCommand(splitMsg[1], splitMsg[2]);
         }
     }
 
@@ -234,8 +249,8 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
         if(voiceConverter.couldBeCommand(msg)) {
             String command = voiceConverter.convertCommand(msg);
             Log.d("MainActivity", "Converted Command: " + command);
-            //if(!command.equals(""))
-                //onCommandMessage(command);
+            if(!command.equals(""))
+                onCommandMessage(command);
         } else {
             Log.d("MainActivity", "\"" + msg + "\"" + " not recognized as command");
         }
@@ -261,6 +276,36 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
             ToggleButton btn = (ToggleButton) findViewById(R.id.btn_play);
             btn.setChecked(false);
         }
+    }
+
+    private void evaluateCasualCommand(String audioFeature, String multiplier) {
+        float maxValue = 0f;
+        float currentValue = 0f;
+        float mult = Float.parseFloat(multiplier);
+        float newValue = 0f;
+        int type = -1;
+
+        if(audioFeature.equals("tempo")) {
+            maxValue = maxTempo;
+            type = 0;
+        } else if(audioFeature.equals("stimmung")) {
+            maxValue = maxValence;
+            type = 1;
+        } else if(audioFeature.equals("lautstärke")) {
+            maxValue = maxLoudness;
+            type = 2;
+        } else if(audioFeature.equals("energie")) {
+            maxValue = maxEnergy;
+            type = 3;
+        } else if(audioFeature.equals("tanzbarkeit")) {
+            maxValue = maxDanceability;
+            type = 4;
+        }
+
+        newValue = (maxValue - currentValue) * mult + currentValue;
+
+        // find song with desired feature with value=newValue +/- 5%
+
     }
 
     public static String formatMilliseconds(int millis) {

@@ -2,6 +2,7 @@ package com.hci.sroettering.spotifyrc.adapters;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -46,7 +47,7 @@ public class ArtistsListAdapter extends ArrayAdapter<Artist> {
             if (bitmaps.containsKey(position)) {
                 iv.setImageBitmap(bitmaps.get(position));
             } else {
-                new DownloadImageTask(iv, bitmaps, position).execute(imageUrl);
+                //new DownloadImageTask(iv, bitmaps, position).execute(imageUrl);
             }
         }
         return rowView;

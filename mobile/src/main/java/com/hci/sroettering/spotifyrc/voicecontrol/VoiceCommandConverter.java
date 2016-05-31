@@ -1,12 +1,21 @@
 package com.hci.sroettering.spotifyrc.voicecontrol;
 
+import android.os.Environment;
 import android.util.Log;
 
 import com.hci.sroettering.spotifyrc.SpotifyItem;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import kaaes.spotify.webapi.android.models.AudioFeaturesTrack;
+import kaaes.spotify.webapi.android.models.AudioFeaturesTracks;
 
 /**
  * Created by sroettering on 24.05.16.
@@ -166,10 +175,35 @@ public class VoiceCommandConverter {
 
     private void convertCasualCommand(Command command) {
         // 3.1 audio feature is directly mentioned
-        
-        // 3.2 audio feature is indirectly mentioned
+        KeywordDictionary.tokenizeCasualCommand(command);
+        if(command.hasCasualAudioFeatureToken()) {
+            command.resultingCommand += "casual;" + command.getCasualAudioFeatureToken().keyword + ";";
 
-        // 3.3 no audio feature is mentioned -> just play next track or random other spotifyItem
+            float multiplier = 0f;
+            Token multiplierToken = command.getMultiplierToken();
+            if(multiplierToken != null) { // should be obsolete, because a neutral token will always be created
+                switch (multiplierToken.type.getValue()) {
+                    case 12: multiplier = 0.25f;
+                        break;
+                    case 13: multiplier = 0.75f;
+                        break;
+                    case 14: multiplier = 0.5f;
+                        break;
+                    default: multiplier = 0.5f;
+                }
+            }
+
+            Token directionToken = command.getDirectionToken();
+            if(directionToken != null) {
+                if(directionToken.type.getValue() == Token.Type.CASUAL_NEGATIVE.getValue()) {
+                    multiplier *= -1;
+                }
+                command.resultingCommand += "" + multiplier;
+            }
+
+        } else {
+            return; // dont know what the user wanted
+        }
     }
 
     private int computeMinimalDistanceWithSubstrings(String text, String textToLookFor) {
@@ -216,5 +250,8 @@ public class VoiceCommandConverter {
 
         return distance[lhs.length()][rhs.length()];
     }
+
+
+
 
 }

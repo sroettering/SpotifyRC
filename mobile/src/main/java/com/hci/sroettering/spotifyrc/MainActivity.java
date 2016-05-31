@@ -29,18 +29,6 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
     private String curTrack;
     private String curArtist;
 
-    // hardcoded min and max values for audio features
-    private final float minTempo = 0f;
-    private final float maxTempo = 235f;
-    private final float minValence = 0f;
-    private final float maxValence = 1f;
-    private final float minLoudness = -0.5f;
-    private final float maxLoudness = -17f;
-    private final float minEnergy = 0f;
-    private final float maxEnergy = 1f;
-    private final float minDanceability = 0f;
-    private final float maxDanceability = 1f;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -279,30 +267,7 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
     }
 
     private void evaluateCasualCommand(String audioFeature, String multiplier) {
-        float maxValue = 0f;
-        float currentValue = 0f;
         float mult = Float.parseFloat(multiplier);
-        float newValue = 0f;
-        int type = -1;
-
-        if(audioFeature.equals("tempo")) {
-            maxValue = maxTempo;
-            type = 0;
-        } else if(audioFeature.equals("stimmung")) {
-            maxValue = maxValence;
-            type = 1;
-        } else if(audioFeature.equals("lautstärke")) {
-            maxValue = maxLoudness;
-            type = 2;
-        } else if(audioFeature.equals("energie")) {
-            maxValue = maxEnergy;
-            type = 3;
-        } else if(audioFeature.equals("tanzbarkeit")) {
-            maxValue = maxDanceability;
-            type = 4;
-        }
-
-        newValue = (maxValue - currentValue) * mult + currentValue;
 
         // find song with desired feature with value=newValue +/- 5%
 

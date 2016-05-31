@@ -80,7 +80,7 @@ public class VoiceCommandConverter {
 
         // 2. check if command is of focused nature, i.e. text contains a player control command
         if(KeywordDictionary.containsFocusedKeyword(command)) {
-            Log.d("VCC", "text contains focused keyword");
+            //Log.d("VCC", "text contains focused keyword");
             convertFocusedCommand(command);
 
         } else {
@@ -119,7 +119,7 @@ public class VoiceCommandConverter {
             } else if(command.getComplexFocusedToken().type == Token.Type.PLAY) {
                 // a play command needs some extra information about what to play
                 Token extraToken = command.getExtraToken(); // should not be null because cleanText contains extras
-                Log.d("VCC", "text contains play keyword with extras: " + extraToken.keyword);
+                //Log.d("VCC", "text contains play keyword with extras: " + extraToken.keyword);
                 command.resultingCommand = "play";
                 if(extraToken != null) {
                     command.resultingCommand += convertExtrasToCommand(extraToken.keyword);
@@ -213,7 +213,7 @@ public class VoiceCommandConverter {
         if(cleanText.equals(textToLookFor)) return -1; // quick exit; -1 to prefer exact matches over others
 
         int minimumDistance = Integer.MAX_VALUE;
-        Log.d("VoiceCommandConverter", "cleanText: " + cleanText + "; textToLookFor: " + textToLookFor);
+        //Log.d("VoiceCommandConverter", "cleanText: " + cleanText + "; textToLookFor: " + textToLookFor);
         if(text.length() < textToLookFor.length()) {
             return computeLevenshteinDistance(cleanText, textToLookFor);
         }

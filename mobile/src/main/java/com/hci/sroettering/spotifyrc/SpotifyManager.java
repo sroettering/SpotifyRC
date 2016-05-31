@@ -254,7 +254,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
                 ((MainActivity) mContext).updateData(ldc.getAlbums(), 2);
                 //updateWatchData();
                 albumTotal = savedAlbumPager.total;
-                if(ldc.getAlbums().size() < albumTotal)
+                if (ldc.getAlbums().size() < albumTotal)
                     retrieveAlbums(offset + pagerLimit);
                 else
                     initArtists();
@@ -284,7 +284,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
                 //updateWatchData();
                 artistTotal = artistCursorPager.artists.total;
                 //Log.d("SpotifyManager", "total: " + artistTotal + "; offset: " + offset);
-                if(ldc.getArtists().size() < artistTotal)
+                if (ldc.getArtists().size() < artistTotal)
                     retrieveArtists(offset + pagerLimit);
                 else
                     initCategories();
@@ -348,7 +348,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
         msg = "";
         for (SavedTrack track : ldc.getSongs()) {
             msg += ";" + track.track.artists.get(0).name + " - " + track.track.name
-                    + "--" + MainActivity.formatMilliseconds((int) (track.track.duration_ms / 1000))
+                    + "--" + MainActivity.formatMilliseconds((int) (track.track.duration_ms))
                     + "--" + track.track.id;
         }
         if(!msg.equals(""))commManager.sendData("song", msg);
@@ -446,7 +446,19 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
     }
 
     public void loadSong(int pos) {
-        play(ldc.getSongs().get(pos).track);
+        List<SavedTrack> songs = ldc.getSongs();
+        //play(songs.get(pos).track);
+        currentQueue.clear();
+        mPlayer.queue(songs.get(pos).track.uri);
+        currentQueue.put(songs.get(pos).track.uri, songs.get(pos).track);
+        // add all other saved songs to queue, too, to mimic spotify behaviour
+        for(int i = 0; i < songs.size(); i++) {
+            if(i != pos) {
+                Track track = songs.get(i).track;
+                mPlayer.queue(track.uri);
+                currentQueue.put(track.uri, track);
+            }
+        }
     }
 
     public void loadAlbum(int pos) {
@@ -473,14 +485,14 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
             @Override
             public void success(Tracks tracks, Response response) {
                 artistTracks.addAll(tracks.tracks);
-                if(!artistTracks.isEmpty())
+                if (!artistTracks.isEmpty())
                     play(artistTracks);
             }
 
             @Override
             public void failure(RetrofitError error) {
                 Log.d("SpotifyManager", "Error retrieveing artists top tracks: " + error.getMessage());
-                if(!artistTracks.isEmpty())
+                if (!artistTracks.isEmpty())
                     play(artistTracks);
             }
         });
@@ -529,7 +541,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
         AudioManager am = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
         int currentVolume = am.getStreamVolume(AudioManager.STREAM_MUSIC);
         am.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume + 2, 0);
-        Log.d("SpotifyManager", "lowering volume to: " + Math.max(15 ,(currentVolume + 2)));
+        Log.d("SpotifyManager", "lowering volume to: " + Math.max(15, (currentVolume + 2)));
     }
 
     public void turnVolumeDown() {
@@ -541,6 +553,15 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
 
     public SpotifyService getSpotifyService() {
         return spotify;
+    }
+
+    public float getAudioFeatureForCurrentTrack(String featureName) {
+        float value = 0f;
+        TrackSimple track = currentQueue.get(playerState.trackUri);
+        if(track != null) {
+            value = ldc.getAudioFeatureDatabase().getFeatureForID(featureName, track.id);
+        }
+        return value;
     }
 
 

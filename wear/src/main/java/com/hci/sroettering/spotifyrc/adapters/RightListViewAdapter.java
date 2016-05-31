@@ -32,7 +32,7 @@ public class RightListViewAdapter extends WearableListView.Adapter {
     @Override
     public WearableListView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         // Inflate our custom layout for list items
-        Log.d("MiddleListViewAdapter", "onCreateViewHolder");
+        //Log.d("MiddleListViewAdapter", "onCreateViewHolder");
         return new ItemViewHolder(mInflater.inflate(R.layout.listviewitem_right_layout, null));
     }
 

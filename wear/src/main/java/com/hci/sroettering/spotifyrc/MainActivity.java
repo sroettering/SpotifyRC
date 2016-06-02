@@ -1,11 +1,10 @@
 package com.hci.sroettering.spotifyrc;
 
-import android.content.Context;
 import android.content.Intent;
-import android.hardware.display.DisplayManager;
-import android.os.BatteryManager;
+import android.hardware.Sensor;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
-import android.os.PowerManager;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.support.wearable.activity.WearableActivity;
@@ -18,10 +17,15 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import com.hci.sroettering.spotifyrc.wiigee.control.AndroidWiigee;
+import com.hci.sroettering.spotifyrc.wiigee.event.GestureEvent;
+import com.hci.sroettering.spotifyrc.wiigee.event.GestureListener;
+
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class MainActivity extends WearableActivity implements CommunicationManager.MessageListener, IVoiceControl {
+public class MainActivity extends WearableActivity implements CommunicationManager.MessageListener, IVoiceControl, GestureListener {
 
     private GridViewPagerAdapter pagerAdapter;
     private GridViewPager pager;
@@ -30,7 +34,17 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     private SpeechRecognizer speechRecognizer;
     private long listeningStartTime;
     private long currentListeningTime;
-    private final long listeningTimeMax = 30000; // ms
+    private final long listeningTimeMax = Long.MAX_VALUE;//30000; // ms
+
+    private SensorManager mSensorManager;
+    private AndroidWiigee aWiigee;
+
+    private static final int TRAIN_BUTTON = 1;
+    private static final int CLOSE_GESTURE_BUTTON = 2;
+    private static final int RECOGNITION_BUTTON = 3;
+
+    private boolean trainButtonDown;
+    private boolean recognitionButtonDown;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,6 +52,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         setContentView(R.layout.activity_main);
         setAmbientEnabled();
 
+        // UI
         pager = (GridViewPager) findViewById(R.id.pager);
         pagerAdapter = new GridViewPagerAdapter(this, this, pager);
         pager.setAdapter(pagerAdapter);
@@ -47,19 +62,54 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         pageIndicator.setPager(pager);
         pageIndicator.setDotFadeWhenIdle(false);
 
+        // Handheld Communication
         commManager = CommunicationManager.getInstance();
         commManager.setContext(this);
         commManager.addListener(this);
         commManager.sendDataRequest();
 
+        // Voice Control
         VoiceRecognitionListener.getInstance().setListener(this);
         currentListeningTime = 0;
         listeningStartTime = -1;
+
+        // Gesture Control
+        mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        aWiigee = new AndroidWiigee();
+        aWiigee.addGestureListener(this);
+        aWiigee.setTrainButton(TRAIN_BUTTON);
+        aWiigee.setCloseGestureButton(CLOSE_GESTURE_BUTTON);
+        aWiigee.setRecognitionButton(RECOGNITION_BUTTON);
+        trainButtonDown = false;
+        recognitionButtonDown = false;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if(!isAmbient()) {
+            restartListeningService();
+        }
+        Log.d("MainAcitivity", "onResume");
+        mSensorManager.registerListener(aWiigee.getDevice(),
+                mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
+                SensorManager.SENSOR_DELAY_GAME);
+        try {
+            aWiigee.getDevice().setAccelerationEnabled(true);
+        } catch (IOException e) {
+            Log.e(getClass().toString(), e.getMessage(), e);
+        }
     }
 
     @Override
     public void onPause() {
         stopListening();
+        mSensorManager.unregisterListener(aWiigee.getDevice());
+        try {
+            aWiigee.getDevice().setAccelerationEnabled(false);
+        } catch (Exception e) {
+            Log.e(getClass().toString(), e.getMessage(), e);
+        }
         super.onPause();
     }
 
@@ -134,16 +184,19 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     }
 
     public void onVolumeDownBtnClicked(View v) {
-        commManager.sendVolumeDown();
+        //commManager.sendVolumeDown();
+        fireWiigeeButtonEvent(TRAIN_BUTTON);
     }
 
     public void onShuffleBtnClicked(View v) {
-        boolean isEnabled = ((ToggleButton) v).isChecked();
-        commManager.sendShuffle(isEnabled);
+        //boolean isEnabled = ((ToggleButton) v).isChecked();
+        //commManager.sendShuffle(isEnabled);
+        fireWiigeeButtonEvent(RECOGNITION_BUTTON);
     }
 
     public void onVolumeUpBtnClicked(View v) {
-        commManager.sendVolumeUp();
+        //commManager.sendVolumeUp();
+        fireWiigeeButtonEvent(CLOSE_GESTURE_BUTTON);
     }
 
 
@@ -204,12 +257,12 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         } else {
             listeningStartTime = System.currentTimeMillis();
         }
-        Log.d("MainAcitivity", "listeningStartTime: " + listeningStartTime + "; currentListeningTime: " + currentListeningTime);
-        if(currentListeningTime >= listeningTimeMax) {
-            listeningStartTime = -1;
-            currentListeningTime = 0;
-            return;
-        }
+        //Log.d("MainAcitivity", "listeningStartTime: " + listeningStartTime + "; currentListeningTime: " + currentListeningTime);
+//        if(currentListeningTime >= listeningTimeMax) {
+//            listeningStartTime = -1;
+//            currentListeningTime = 0;
+//            return;
+//        }
 
         try {
             initSpeech();
@@ -285,4 +338,29 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         return duration;
     }
 
+    // AndroidWiigee Gesture Recognition
+
+    @Override
+    public void gestureReceived(GestureEvent event) {
+        Log.d("AndroidWiigee", "received event: " + event.toString());
+    }
+
+    public void fireWiigeeButtonEvent(int buttonType) {
+        switch (buttonType) {
+            case TRAIN_BUTTON:
+                trainButtonDown = !trainButtonDown;
+                Log.d("MainActivity", "trainButtonDown: " + trainButtonDown);
+                if(trainButtonDown) aWiigee.getDevice().fireButtonPressedEvent(buttonType);
+                else aWiigee.getDevice().fireButtonReleasedEvent(buttonType);
+                break;
+            case RECOGNITION_BUTTON:
+                recognitionButtonDown = !recognitionButtonDown;
+                if(recognitionButtonDown) aWiigee.getDevice().fireButtonPressedEvent(buttonType);
+                else aWiigee.getDevice().fireButtonReleasedEvent(buttonType);
+                break;
+            case CLOSE_GESTURE_BUTTON:
+                aWiigee.getDevice().fireButtonPressedEvent(buttonType);
+                break;
+        }
+    }
 }

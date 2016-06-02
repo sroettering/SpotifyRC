@@ -21,6 +21,7 @@ public class Command {
     public Command(String text) {
         this.text = text;
         tokenList = new ArrayList<>();
+        resultingCommand = "";
     }
 
     public boolean hasSimpleFocusedToken() {

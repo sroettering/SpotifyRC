@@ -18,6 +18,7 @@ import com.spotify.sdk.android.player.Player;
 import com.spotify.sdk.android.player.Spotify;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
@@ -121,6 +122,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
     }
 
     public void login() {
+        ldc = new ListDataContainer(); // do not place in constructor
         Log.d("SpotifyManager", "logging into spotify");
         AuthenticationRequest.Builder builder = new AuthenticationRequest.Builder(CLIENT_ID,
                 AuthenticationResponse.Type.TOKEN,
@@ -147,12 +149,11 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
     }
 
     public void createFeatureSpreadSheet() {
-        ldc.getAudioFeatureDatabase().createAudioFeatureSpreadsheet();
+        ldc.getAudioFeatureDatabase().saveAudioFeaturesToFile();
     }
 
     private void init() {
         Log.d("SpotifyManager", "initializing SpotifyManager");
-        ldc = new ListDataContainer(); // do not place in constructor
         initPlayer();
         initPlaylists();
 //        initSongs();
@@ -170,6 +171,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
                     mPlayer = player;
                     mPlayer.addConnectionStateCallback(SpotifyManager.this);
                     mPlayer.addPlayerNotificationCallback(SpotifyManager.this);
+                    Log.d("SpotifyManager", "Initialized Player");
                 }
 
                 @Override
@@ -196,10 +198,12 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
                 ((MainActivity) mContext).updateData(ldc.getPlaylists(), 0);
                 //updateWatchData();
                 playlistTotal = playlistSimplePager.total;
-                if (ldc.getPlaylists().size() < playlistTotal)
+                if (ldc.getPlaylists().size() < playlistTotal) {
                     retrievePlaylists(offset + pagerLimit);
-                else
+                } else {
+                    Log.d("SpotifyManager", "Initialized Playlists");
                     initSongs();
+                }
             }
 
             @Override
@@ -225,10 +229,12 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
                 ((MainActivity) mContext).updateData(ldc.getSongs(), 1);
                 //updateWatchData();
                 songTotal = savedTrackPager.total;
-                if (ldc.getSongs().size() < songTotal)
+                if (ldc.getSongs().size() < songTotal) {
                     retrieveSongs(offset + pagerLimit);
-                else
+                } else {
+                    Log.d("SpotifyManager", "Initialized Saved Tracks");
                     initAlbums();
+                }
             }
 
             @Override
@@ -254,10 +260,12 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
                 ((MainActivity) mContext).updateData(ldc.getAlbums(), 2);
                 //updateWatchData();
                 albumTotal = savedAlbumPager.total;
-                if (ldc.getAlbums().size() < albumTotal)
+                if (ldc.getAlbums().size() < albumTotal) {
                     retrieveAlbums(offset + pagerLimit);
-                else
+                } else {
+                    Log.d("SpotifyManager", "Initialized Saved Albums");
                     initArtists();
+                }
             }
 
             @Override
@@ -284,10 +292,12 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
                 //updateWatchData();
                 artistTotal = artistCursorPager.artists.total;
                 //Log.d("SpotifyManager", "total: " + artistTotal + "; offset: " + offset);
-                if (ldc.getArtists().size() < artistTotal)
+                if (ldc.getArtists().size() < artistTotal) {
                     retrieveArtists(offset + pagerLimit);
-                else
+                } else {
+                    Log.d("SpotifyManager", "Initialized Saved Artists");
                     initCategories();
+                }
             }
 
             @Override
@@ -307,6 +317,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
             public void success(CategoriesPager categoriesPager, Response response) {
                 ldc.setCategories(categoriesPager.categories.items);
                 ((MainActivity) mContext).updateData(ldc.getCategories(), 4);
+                Log.d("SpotifyManager", "Initialized Categories");
                 updateWatchData();
                 ldc.featureDatabase.setReady();
                 ldc.featureDatabase.retrieveAudioFeaturesForQueuedTracks();
@@ -518,6 +529,12 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
 
     }
 
+    public void loadSongsByFeature(String type, float mult) {
+        List<TrackSimple> tracks = ldc.getAudioFeatureDatabase().getTracksWithFeature(type, mult);
+        Collections.shuffle(tracks);
+        play(tracks);
+    }
+
     //retrieve playlist tracks from spotify
     private void loadPlaylistTracks(String ownerID, String playlistID) {
         spotify.getPlaylist(ownerID, playlistID, new Callback<Playlist>() {
@@ -541,14 +558,14 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
         AudioManager am = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
         int currentVolume = am.getStreamVolume(AudioManager.STREAM_MUSIC);
         am.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume + 2, 0);
-        Log.d("SpotifyManager", "lowering volume to: " + Math.max(15, (currentVolume + 2)));
+        Log.d("SpotifyManager", "turning volume up to: " + Math.max(15, (currentVolume + 2)));
     }
 
     public void turnVolumeDown() {
         AudioManager am = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
         int currentVolume = am.getStreamVolume(AudioManager.STREAM_MUSIC);
         am.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume - 2, 0);
-        Log.d("SpotifyManager", "lowering volume to: " + Math.max(0 ,(currentVolume - 2)));
+        Log.d("SpotifyManager", "lowering volume down to: " + Math.max(0 ,(currentVolume - 2)));
     }
 
     public SpotifyService getSpotifyService() {

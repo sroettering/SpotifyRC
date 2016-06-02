@@ -3,8 +3,11 @@ package com.hci.sroettering.spotifyrc;
 import android.os.Environment;
 import android.util.Log;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -24,8 +27,8 @@ import retrofit.client.Response;
  */
 public class AudioFeatureDatabase {
 
-    // would be nice to have artist and track name for every audio feature
-    // to have a nice output
+    private final String directoryName = "/SpotifyRC";
+    private final String fileName = "AudioFeatures.csv";
 
     private SpotifyManager mSpotifyManager = SpotifyManager.getInstance();
 
@@ -36,6 +39,7 @@ public class AudioFeatureDatabase {
     private HashMap<String, TrackSimple> trackCollection;
     private ArrayList<String> trackQueue;
     private boolean isReady;
+    private boolean newFeaturesAdded;
 
     public AudioFeatureDatabase() {
         maxValues = new HashMap<>();
@@ -45,6 +49,8 @@ public class AudioFeatureDatabase {
         trackCollection = new HashMap<>();
         trackQueue = new ArrayList<>();
         isReady = false;
+        newFeaturesAdded = false;
+        createAudioFeaturesDatabaseFromFile();
     }
 
     private void initValues() {
@@ -73,12 +79,12 @@ public class AudioFeatureDatabase {
         return value;
     }
 
-    public TrackSimple getTrackWithFeature(String type, float multiplier) {
+    public List<TrackSimple> getTracksWithFeature(String type, float multiplier) {
         float maxValue = maxValues.get(type);
         float minValue = minValues.get(type);
         float currentValue = mSpotifyManager.getAudioFeatureForCurrentTrack(type);
         float newValue = 0f;
-        float tolerance = 0.1f;
+        float tolerance = 0.075f;
 
         // scale difference between either top or bottom limit with multiplier and add to current value
         if(multiplier < 0) {
@@ -103,25 +109,22 @@ public class AudioFeatureDatabase {
                 value = aft.danceability;
             }
 
+            // find songs with desired feature with value=newValue +/- tolerance [%]
             if(value > newValue - newValue*tolerance && value < newValue + newValue*tolerance) {
                 tracksInRange.add(trackCollection.get(id));
             }
         }
-        int random = (int)(tracksInRange.size() * Math.random());
-        return tracksInRange.get(random);
+        return tracksInRange;
     }
 
     public void setReady() {
         isReady = true;
     }
 
-//    private void addTrackIDToQueue(String id) {
-//        trackQueue.add(id);
-//    }
-
     private void addTrackIDsToQueue(List<String> ids) {
         for(String s: ids) {
-            if(!trackQueue.contains(s)) {
+            // dont add duplicate ids and dont add ids for which an audio feature entry already exists
+            if(!trackQueue.contains(s) && !audioFeatures.containsKey(s)) {
                 trackQueue.add(s);
             }
         }
@@ -162,29 +165,38 @@ public class AudioFeatureDatabase {
 
         if(!ids.equals("")) {
             retrieveAudioFeatures(ids);
+        } else {
+            finishedRetrievingAudioFeatures();
         }
 
     }
 
-    private void log() {
+    private void finishedRetrievingAudioFeatures() {
+        // only if the trackCollection and the audioFeatures maps have the same size, the retrieval is complete
         if(trackCollection.size() == audioFeatures.size()) {
-            Log.d("AudioFeatureDatabase", "finished loading");
-            Log.d("AudioFeatureDatabase", "trackCollection.size: " + trackCollection.size());
-            Log.d("AudioFeatureDatabase", "audioFeatures.size: " + audioFeatures.size());
-            for(int i = 0; i < featureNames.length; i++) {
-                String featureName = featureNames[i];
-                Log.d("AudioFeatureDatabase", "values for " + featureName + ": " + minValues.get(featureName) + "; " + maxValues.get(featureName));
+            Log.d("AudioFeatureDatabase", "finished retrieving audio features");
+            Log.d("AudioFeatureDatabase", "Number of Tracks: " + trackCollection.size());
+//            for(int i = 0; i < featureNames.length; i++) {
+//                String featureName = featureNames[i];
+//                Log.d("AudioFeatureDatabase", "values for " + featureName + ": " + minValues.get(featureName) + "; " + maxValues.get(featureName));
+//            }
+
+            // if audioFeatures contains new items not in the "cache-file", write new "cache-file"
+            if(newFeaturesAdded) {
+                saveAudioFeaturesToFile();
+                newFeaturesAdded = false;
             }
         }
     }
 
     private void retrieveAudioFeatures(String ids) {
-        //Log.d("AudioFeatureDatabase", "sending audioFeature request");
+        Log.d("AudioFeatureDatabase", "sending audioFeature request");
         mSpotifyManager.getSpotifyService().getTracksAudioFeatures(ids, new Callback<AudioFeaturesTracks>() {
             @Override
             public void success(AudioFeaturesTracks audioFeaturesTracks, Response response) {
+                newFeaturesAdded = true; // obviously new features are added
                 addAudioFeatures(audioFeaturesTracks);
-                log();
+                finishedRetrievingAudioFeatures();
             }
 
             @Override
@@ -220,11 +232,14 @@ public class AudioFeatureDatabase {
 
     private String getSongNameAndArtistForID(String id) {
         TrackSimple track = trackCollection.get(id);
-        return track.artists.get(0).name + " - " + track.name;
+        String artistName = track.artists.get(0).name.replace(";", ""); // replace ';' to not mess up the csv file
+        String trackName = track.name.replace(";", "");
+        return artistName + " - " + trackName;
     }
 
     // create audio feature spreadsheet
-    public void createAudioFeatureSpreadsheet() {
+    public void saveAudioFeaturesToFile() {
+        Log.d("AudioFeatureDatabase", "Saving audio features to file");
         String s = "";
         s += "Song;id;tempo;valence;loudness;energy;danceability;\n";
         for(String id: audioFeatures.keySet()) {
@@ -239,16 +254,16 @@ public class AudioFeatureDatabase {
             s += audioFeature.danceability + ";";
             s += "\n";
         }
-        generateNoteOnSD(s.replaceAll("[.]", ","));
+        writeStringToFile(s.replaceAll("[.]", ","));
     }
 
-    public void generateNoteOnSD(String sBody) {
+    private void writeStringToFile(String sBody) {
         try {
-            File root = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), "/SpotifyRC");
+            File root = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), directoryName);
             if (!root.exists()) {
                 root.mkdirs();
             }
-            File gpxfile = new File(root, "AudioFeatures.csv");
+            File gpxfile = new File(root, fileName);
             FileOutputStream f = new FileOutputStream(gpxfile);
             PrintWriter pw = new PrintWriter(f);
             pw.println(sBody);
@@ -258,6 +273,57 @@ public class AudioFeatureDatabase {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void createAudioFeaturesDatabaseFromFile() {
+        Log.d("AudioFeatureDatabase", "loading audio features from file");
+        File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + directoryName, fileName);
+        if(!file.exists()) {
+            Log.d("AudioFeatureDatabase", "file not found");
+            return;
+        }
+
+        List<String> fileContent = new ArrayList<>();
+        String input = "";
+        try {
+            BufferedReader bReader = new BufferedReader(new FileReader(file));
+            while((input = bReader.readLine()) != null) {
+                if(input.contains("Song;id;tempo;valence;loudness;energy;danceability;")) {
+                    continue;
+                }
+                fileContent.add(input.replace(",", ".")); // LibreOffice needed ',' for floating point numbers
+            }
+            bReader.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // creating not completed AudioFeaturesTrack objects from file data
+        AudioFeaturesTrack aft;
+        String[] cells;
+        int itemCount = 0;
+        for(String line: fileContent) {
+            if("".equals(line)) {
+                continue;
+            }
+            aft = new AudioFeaturesTrack();
+            cells = line.split(";");
+            //Log.d("AudioFeatureDatabase", line + " split length: " + cells.length);
+            aft.id = cells[1];
+            aft.tempo = Float.parseFloat(cells[2]);
+            aft.valence = Float.parseFloat(cells[3]);
+            aft.loudness = Float.parseFloat(cells[4]);
+            aft.energy = Float.parseFloat(cells[5]);
+            aft.danceability = Float.parseFloat(cells[6]);
+            itemCount++;
+
+            audioFeatures.put(aft.id, aft);
+        }
+
+        Log.d("AudioFeatureDatabase", "finished. loaded " + itemCount + " features from file");
+
     }
 
 }

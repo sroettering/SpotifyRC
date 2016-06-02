@@ -138,7 +138,6 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
 
     public void nextTrack(View v) {
         mSpotifyManager.nextTrack();
-        //mSpotifyManager.createFeatureSpreadSheet();
 //        String[] testCommands = {
 ////                "play Gute Laune bitte",
 ////                "play bitte",
@@ -237,7 +236,7 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
         if(voiceConverter.couldBeCommand(msg)) {
             String command = voiceConverter.convertCommand(msg);
             Log.d("MainActivity", "Converted Command: " + command);
-            if(!command.equals(""))
+            if(!("").equals(command))
                 onCommandMessage(command);
         } else {
             Log.d("MainActivity", "\"" + msg + "\"" + " not recognized as command");
@@ -268,9 +267,7 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
 
     private void evaluateCasualCommand(String audioFeature, String multiplier) {
         float mult = Float.parseFloat(multiplier);
-
-        // find song with desired feature with value=newValue +/- 5%
-
+        mSpotifyManager.loadSongsByFeature(audioFeature, mult);
     }
 
     public static String formatMilliseconds(int millis) {

@@ -87,7 +87,7 @@ public class VoiceCommandConverter {
             // 3. command is of casual nature, i.e. an audio feature is directly mentioned
             // or keywords positivley/negatively describing a specific audio feature are mentioned
             // or user just wants a different song
-            Log.d("VCC", "text is casual");
+            Log.d("VCC", "text could be casual");
             convertCasualCommand(command);
 
         }
@@ -177,6 +177,7 @@ public class VoiceCommandConverter {
         // 3.1 audio feature is directly mentioned
         KeywordDictionary.tokenizeCasualCommand(command);
         if(command.hasCasualAudioFeatureToken()) {
+            Log.d("VCC", "text contains casual command");
             command.resultingCommand += "casual;" + command.getCasualAudioFeatureToken().keyword + ";";
 
             float multiplier = 0f;

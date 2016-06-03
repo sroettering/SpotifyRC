@@ -1,15 +1,7 @@
 package com.hci.sroettering.spotifyrc;
 
-import android.os.Environment;
 import android.util.Log;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -50,7 +42,7 @@ public class AudioFeatureDatabase {
         trackQueue = new ArrayList<>();
         isReady = false;
         newFeaturesAdded = false;
-        createAudioFeaturesDatabaseFromFile();
+        initFromCache();
     }
 
     private void initValues() {
@@ -148,6 +140,16 @@ public class AudioFeatureDatabase {
     public void retrieveAudioFeaturesForQueuedTracks() {
         if (!isReady) return;
 
+        // throw out audio features when there is no track in current library
+        Log.d("AudioFeatureDatabase", "Sync - Number of Tracks: " + trackCollection.size());
+        Log.d("AudioFeatureDatabase", "Sync - Number of Features: " + audioFeatures.size());
+        HashMap<String, AudioFeaturesTrack> tempMap = new HashMap<>();
+        for(String key: trackCollection.keySet()) {
+            if(audioFeatures.containsKey(key)) tempMap.put(key, audioFeatures.get(key));
+        }
+        Log.d("AudioFeatureDatabase", "Sync - Number of common features: " + tempMap.size());
+        audioFeatures = tempMap;
+
         // spotify can only handle 100 track ids per request
         // could use trackQueue.sublist() instead
         String ids = "";
@@ -183,10 +185,26 @@ public class AudioFeatureDatabase {
 
             // if audioFeatures contains new items not in the "cache-file", write new "cache-file"
             if(newFeaturesAdded) {
-                saveAudioFeaturesToFile();
+                saveAudioFeaturesToCache();
                 newFeaturesAdded = false;
             }
         }
+//        else if(trackCollection.size() < audioFeatures.size()) {
+//            // tracks must have been deleted from spotify, so they dont need to reside in the cache
+//            // assumptions:
+//            // trackCollection is filled before audioFeatures
+//            // audioFeatures have to be completely loaded from cache and/or from spotify,
+//            // so trackCollection does not contain keys not in audioFeatures
+//
+//            HashMap<String, AudioFeaturesTrack> tempMap = new HashMap<>();
+//            for(String key: trackCollection.keySet()) {
+//                // put only needed features into the new map
+//                tempMap.put(key, audioFeatures.get(key));
+//            }
+//            audioFeatures = tempMap;
+//            saveAudioFeaturesToCache();
+//            newFeaturesAdded = false;
+//        }
     }
 
     private void retrieveAudioFeatures(String ids) {
@@ -237,8 +255,7 @@ public class AudioFeatureDatabase {
         return artistName + " - " + trackName;
     }
 
-    // create audio feature spreadsheet
-    public void saveAudioFeaturesToFile() {
+    public void saveAudioFeaturesToCache() {
         Log.d("AudioFeatureDatabase", "Saving audio features to file");
         String s = "";
         s += "Song;id;tempo;valence;loudness;energy;danceability;\n";
@@ -254,60 +271,27 @@ public class AudioFeatureDatabase {
             s += audioFeature.danceability + ";";
             s += "\n";
         }
-        writeStringToFile(s.replaceAll("[.]", ","));
+        SpotifyCache.saveAudioFeatures(s.replaceAll("[.]", ","));
     }
 
-    private void writeStringToFile(String sBody) {
-        try {
-            File root = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), directoryName);
-            if (!root.exists()) {
-                root.mkdirs();
-            }
-            File gpxfile = new File(root, fileName);
-            FileOutputStream f = new FileOutputStream(gpxfile);
-            PrintWriter pw = new PrintWriter(f);
-            pw.println(sBody);
-            pw.flush();
-            pw.close();
-            f.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void createAudioFeaturesDatabaseFromFile() {
+    public void initFromCache() {
         Log.d("AudioFeatureDatabase", "loading audio features from file");
-        File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + directoryName, fileName);
-        if(!file.exists()) {
-            Log.d("AudioFeatureDatabase", "file not found");
+
+        if(!SpotifyCache.hasAudioFeatures()) {
             return;
         }
 
-        List<String> fileContent = new ArrayList<>();
-        String input = "";
-        try {
-            BufferedReader bReader = new BufferedReader(new FileReader(file));
-            while((input = bReader.readLine()) != null) {
-                if(input.contains("Song;id;tempo;valence;loudness;energy;danceability;")) {
-                    continue;
-                }
-                fileContent.add(input.replace(",", ".")); // LibreOffice needed ',' for floating point numbers
-            }
-            bReader.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        List<String> fileContent = SpotifyCache.getAudioFeatures();
 
         // creating not completed AudioFeaturesTrack objects from file data
         AudioFeaturesTrack aft;
         String[] cells;
         int itemCount = 0;
-        for(String line: fileContent) {
-            if("".equals(line)) {
+        for (String line : fileContent) {
+            if ("".equals(line) || line.contains("Song;id;tempo;valence;loudness;energy;danceability;")) {
                 continue;
             }
+            line = line.replace(",", ".");
             aft = new AudioFeaturesTrack();
             cells = line.split(";");
             //Log.d("AudioFeatureDatabase", line + " split length: " + cells.length);

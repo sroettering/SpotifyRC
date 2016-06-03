@@ -148,14 +148,11 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
         }
     }
 
-    public void createFeatureSpreadSheet() {
-        ldc.getAudioFeatureDatabase().saveAudioFeaturesToFile();
-    }
-
     private void init() {
         Log.d("SpotifyManager", "initializing SpotifyManager");
         initPlayer();
         initPlaylists();
+        // parallel requests might be bad in terms of rate limiting from spotify
 //        initSongs();
 //        initAlbums();
 //        initArtists();
@@ -390,26 +387,6 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
         }
     }
 
-    public void play(String type, String id) {
-        int pos = -1;
-        if(type.equals("playlist")) {
-            pos = ldc.getPosForPlaylistID(id);
-            if(pos != -1) loadPlaylist(pos);
-        } else if(type.equals("song")) {
-            pos = ldc.getPosForSongID(id);
-            if(pos != -1) loadSong(pos);
-        } else if(type.equals("album")) {
-            pos = ldc.getPosForAlbumID(id);
-            if(pos != -1) loadAlbum(pos);
-        } else if(type.equals("artist")) {
-            pos = ldc.getPosForArtistID(id);
-            if(pos != -1) loadArtist(pos);
-        } else if(type.equals("category")) {
-            pos = ldc.getPosForCategoryID(id);
-            if(pos != -1) loadCategory(pos);
-        }
-    }
-
     public void resume() {
         if(mPlayer.isInitialized()) {
             mPlayer.getPlayerState(SpotifyManager.this);
@@ -450,6 +427,28 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
         }
     }
 
+    // loading spotify items into the player
+
+    public void play(String type, String id) {
+        int pos = -1;
+        if(type.equals("playlist")) {
+            pos = ldc.getPosForPlaylistID(id);
+            if(pos != -1) loadPlaylist(pos);
+        } else if(type.equals("song")) {
+            pos = ldc.getPosForSongID(id);
+            if(pos != -1) loadSong(pos);
+        } else if(type.equals("album")) {
+            pos = ldc.getPosForAlbumID(id);
+            if(pos != -1) loadAlbum(pos);
+        } else if(type.equals("artist")) {
+            pos = ldc.getPosForArtistID(id);
+            if(pos != -1) loadArtist(pos);
+        } else if(type.equals("category")) {
+            pos = ldc.getPosForCategoryID(id);
+            if(pos != -1) loadCategory(pos);
+        }
+    }
+
     public void loadPlaylist(int pos) {
         String ownerID = ldc.getPlaylists().get(pos).owner.id;
         String playlistID = ldc.getPlaylists().get(pos).id;
@@ -462,7 +461,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
         currentQueue.clear();
         mPlayer.queue(songs.get(pos).track.uri);
         currentQueue.put(songs.get(pos).track.uri, songs.get(pos).track);
-        // add all other saved songs to queue, too, to mimic spotify behaviour
+        // add all other saved songs to queue, too, as spotify does
         for(int i = 0; i < songs.size(); i++) {
             if(i != pos) {
                 Track track = songs.get(i).track;
@@ -482,7 +481,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
         List<SavedTrack> allTracks = ldc.getSongs();
         final List<TrackSimple> artistTracks = new ArrayList<>();
 
-        //filter songs by artist
+        // filter your saved songs by artist
         for(SavedTrack track: allTracks) {
             for(ArtistSimple a: track.track.artists) {
                 if (a.id.equals(artist.id)) {
@@ -492,22 +491,10 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
             }
         }
 
-        spotify.getArtistTopTrack(artist.id, "DE", new Callback<Tracks>() {
-            @Override
-            public void success(Tracks tracks, Response response) {
-                artistTracks.addAll(tracks.tracks);
-                if (!artistTracks.isEmpty())
-                    play(artistTracks);
-            }
+        // you dont always have songs for a saved artist, so the artists top tracks get added to queue
+        artistTracks.addAll(ldc.getArtistTopTracks(artist.id));
 
-            @Override
-            public void failure(RetrofitError error) {
-                Log.d("SpotifyManager", "Error retrieveing artists top tracks: " + error.getMessage());
-                if (!artistTracks.isEmpty())
-                    play(artistTracks);
-            }
-        });
-
+        play(artistTracks);
     }
 
     public void loadCategory(int pos) {
@@ -535,7 +522,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
         play(tracks);
     }
 
-    //retrieve playlist tracks from spotify
+    // retrieve playlist tracks from spotify
     private void loadPlaylistTracks(String ownerID, String playlistID) {
         spotify.getPlaylist(ownerID, playlistID, new Callback<Playlist>() {
             @Override
@@ -695,6 +682,8 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
         private List<Artist> artists;
         private List<Category> categories;
 
+        private HashMap<String, List<Track>> artistsTopTracks;
+
         // Lists with spotifyItems
         private List<SpotifyItem>[] spotifyData;
 
@@ -706,6 +695,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
             albums = new ArrayList<>();
             artists = new ArrayList<>();
             categories = new ArrayList<>();
+            artistsTopTracks = new HashMap<>();
             spotifyData = new ArrayList[5];
             featureDatabase = new AudioFeatureDatabase();
         }
@@ -715,6 +705,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
         public List<SavedAlbum> getAlbums() { return albums; }
         public List<Artist> getArtists() { return artists; }
         public List<Category> getCategories() { return categories; }
+        public List<Track> getArtistTopTracks(String artistID) { return artistsTopTracks.get(artistID); }
 
         public void setPlaylists(List<PlaylistSimple> list) {
             playlists = list;
@@ -751,7 +742,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
             ArrayList<SpotifyItem> tempList = new ArrayList<>();
             for(Artist artist: artists) {
                 tempList.add(new SpotifyItem(artist));
-                retrieveArtistTracks(artist);
+                retrieveArtistTopTracks(artist);
             }
             spotifyData[3] = tempList;
         }
@@ -835,11 +826,15 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
             });
         }
 
-        private void retrieveArtistTracks(Artist artist) {
+        private void retrieveArtistTopTracks(final Artist artist) {
+            if(artistsTopTracks.get(artist.id) != null) {
+                return;
+            }
             SpotifyManager.getInstance().getSpotifyService().getArtistTopTrack(artist.id, "DE", new Callback<Tracks>() {
                 @Override
                 public void success(Tracks tracks, Response response) {
                     featureDatabase.addTracks(tracks.tracks);
+                    artistsTopTracks.put(artist.id, tracks.tracks);
                 }
 
                 @Override

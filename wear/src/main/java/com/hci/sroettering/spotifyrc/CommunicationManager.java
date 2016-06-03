@@ -93,6 +93,10 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
             for(MessageListener msgListener: listeners) {
                 msgListener.onDataMessage(msg);
             }
+        } else if(msgPath.equals(textCmdPath)) {
+            for(MessageListener msgListener: listeners) {
+                msgListener.onTextCommandMessage(msg);
+            }
         } else if(msgPath.equals(cmdPath)) {
             // should never happen on watch
         } else if(msgPath.equals(sensorPath)) {
@@ -188,6 +192,7 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
     public interface MessageListener {
         void onUpdateMessage(String msg);
         void onDataMessage(String msg);
+        void onTextCommandMessage(String msg);
     }
 
 }

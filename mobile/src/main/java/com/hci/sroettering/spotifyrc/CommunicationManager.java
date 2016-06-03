@@ -157,6 +157,11 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
         sendMessage(updatePath, msg);
     }
 
+    // send info about speech command
+    public void sendSpeechCommandAck(String message) {
+        sendMessage(textCmdPath, message);
+    }
+
 
     private void sendMessage(final String path, final String text) {
         new Thread(new Runnable() {

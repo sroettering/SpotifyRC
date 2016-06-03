@@ -10,6 +10,7 @@ import android.view.View;
 import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.hci.sroettering.spotifyrc.voicecontrol.VoiceCommandConverter;
@@ -236,8 +237,19 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
         if(voiceConverter.couldBeCommand(msg)) {
             String command = voiceConverter.convertCommand(msg);
             Log.d("MainActivity", "Converted Command: " + command);
-            if(!("").equals(command))
+            String text = "";
+            if(!("").equals(command)) {
                 onCommandMessage(command);
+                text = "\"" + msg + "\" got converted to: \"" + command + "\"";
+                Toast toast = Toast.makeText(getApplicationContext(), text, Toast.LENGTH_LONG);
+                toast.show();
+                commManager.sendSpeechCommandAck(text);
+            } else {
+                text = "\"" + msg + "\" not recognized as command";
+                Toast toast = Toast.makeText(getApplicationContext(), text, Toast.LENGTH_LONG);
+                toast.show();
+                commManager.sendSpeechCommandAck(text);
+            }
         } else {
             Log.d("MainActivity", "\"" + msg + "\"" + " not recognized as command");
         }

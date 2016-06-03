@@ -469,6 +469,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
                 currentQueue.put(track.uri, track);
             }
         }
+        startTimer();
     }
 
     public void loadAlbum(int pos) {

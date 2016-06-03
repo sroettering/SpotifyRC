@@ -2,9 +2,11 @@ package com.hci.sroettering.spotifyrc;
 
 import android.content.Intent;
 import android.hardware.Sensor;
+import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.os.Vibrator;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.support.wearable.activity.WearableActivity;
@@ -25,7 +27,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class MainActivity extends WearableActivity implements CommunicationManager.MessageListener, IVoiceControl, GestureListener {
+public class MainActivity extends WearableActivity implements CommunicationManager.MessageListener, IVoiceControl, GestureListener, SensorEventListener {
 
     private GridViewPagerAdapter pagerAdapter;
     private GridViewPager pager;
@@ -91,6 +93,9 @@ public class MainActivity extends WearableActivity implements CommunicationManag
             restartListeningService();
         }
         Log.d("MainAcitivity", "onResume");
+        mSensorManager.registerListener(this,
+                mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR),
+                SensorManager.SENSOR_DELAY_NORMAL);
         mSensorManager.registerListener(aWiigee.getDevice(),
                 mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
                 SensorManager.SENSOR_DELAY_GAME);
@@ -104,6 +109,8 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     @Override
     public void onPause() {
         stopListening();
+        Log.d("MainAcitivity", "onPause");
+        mSensorManager.unregisterListener(this);
         mSensorManager.unregisterListener(aWiigee.getDevice());
         try {
             aWiigee.getDevice().setAccelerationEnabled(false);
@@ -239,6 +246,18 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         }
     }
 
+    @Override
+    public void onTextCommandMessage(String msg) {
+        Toast toast = Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG);
+        toast.show();
+        Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+        if(msg.contains("not recognized")) {
+            vibrator.vibrate(new long[]{200, 400}, 0);
+        } else {
+            vibrator.vibrate(500);
+        }
+    }
+
 
     // Voice Recognition Code
     private void setListeningButtonChecked(boolean checked) {
@@ -362,5 +381,28 @@ public class MainActivity extends WearableActivity implements CommunicationManag
                 aWiigee.getDevice().fireButtonPressedEvent(buttonType);
                 break;
         }
+    }
+
+
+    // Listening to sensor for recognizing a start gesture
+
+    private static final float NS2S = 1.0f / 1000000000.0f;
+    private static final float EPSILON = 0.3f;
+    private final float[] deltaRotationVector = new float[4];
+    private float timestamp;
+    private float[] rotationCurrent = new float[3];
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if(event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
+            float[] values = event.values;
+            Log.d("SensorEvent", "x: " + values[0] + "; y: " + values[1] + "; z: " + values[2]);
+
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
     }
 }

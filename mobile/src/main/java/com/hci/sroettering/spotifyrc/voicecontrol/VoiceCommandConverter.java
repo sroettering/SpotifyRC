@@ -160,7 +160,7 @@ public class VoiceCommandConverter {
             }
             for(SpotifyItem item: spotifyData[i]) {
                 int distance = computeMinimalDistanceWithSubstrings(item.text, text);
-                Log.d("VoiceCommandConverter", "data[" + i + "] text: " + item.text + "; distance: " + distance);
+                //Log.d("VoiceCommandConverter", "data[" + i + "] text: " + item.text + "; distance: " + distance);
                 if(distance < minimalDistance) {
                     minimalDistance = distance;
                     mostSimilarItem = item;

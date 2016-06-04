@@ -24,7 +24,6 @@ import com.hci.sroettering.spotifyrc.wiigee.event.GestureEvent;
 import com.hci.sroettering.spotifyrc.wiigee.event.GestureListener;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends WearableActivity implements CommunicationManager.MessageListener, IVoiceControl, GestureListener, SensorEventListener {
@@ -41,6 +40,8 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     private SensorManager mSensorManager;
     private AndroidWiigee aWiigee;
 
+    private Vibrator vibrator;
+
     private static final int TRAIN_BUTTON = 1;
     private static final int CLOSE_GESTURE_BUTTON = 2;
     private static final int RECOGNITION_BUTTON = 3;
@@ -53,6 +54,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         setAmbientEnabled();
+        //getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         // UI
         pager = (GridViewPager) findViewById(R.id.pager);
@@ -71,7 +73,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         commManager.sendDataRequest();
 
         // Voice Control
-        VoiceRecognitionListener.getInstance().setListener(this);
+//        VoiceRecognitionListener.getInstance().setListener(this);
         currentListeningTime = 0;
         listeningStartTime = -1;
 
@@ -84,26 +86,29 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         aWiigee.setRecognitionButton(RECOGNITION_BUTTON);
         trainButtonDown = false;
         recognitionButtonDown = false;
+
+        vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
     }
 
     @Override
     public void onResume() {
         super.onResume();
         if(!isAmbient()) {
-            restartListeningService();
+//            restartListeningService();
         }
         Log.d("MainAcitivity", "onResume");
+        //Log.d("Sensor", "Available Sensors: " + mSensorManager.getSensorList(Sensor.TYPE_ALL).toString());
         mSensorManager.registerListener(this,
-                mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR),
+                mSensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR),
                 SensorManager.SENSOR_DELAY_NORMAL);
-        mSensorManager.registerListener(aWiigee.getDevice(),
-                mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-                SensorManager.SENSOR_DELAY_GAME);
-        try {
-            aWiigee.getDevice().setAccelerationEnabled(true);
-        } catch (IOException e) {
-            Log.e(getClass().toString(), e.getMessage(), e);
-        }
+//        mSensorManager.registerListener(aWiigee.getDevice(),
+//                mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
+//                SensorManager.SENSOR_DELAY_GAME);
+//        try {
+//            aWiigee.getDevice().setAccelerationEnabled(true);
+//        } catch (IOException e) {
+//            Log.e(getClass().toString(), e.getMessage(), e);
+//        }
     }
 
     @Override
@@ -111,7 +116,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         stopListening();
         Log.d("MainAcitivity", "onPause");
         mSensorManager.unregisterListener(this);
-        mSensorManager.unregisterListener(aWiigee.getDevice());
+//        mSensorManager.unregisterListener(aWiigee.getDevice());
         try {
             aWiigee.getDevice().setAccelerationEnabled(false);
         } catch (Exception e) {
@@ -142,6 +147,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     @Override
     public void onEnterAmbient(Bundle ambientDetails) {
         super.onEnterAmbient(ambientDetails);
+        Log.d("MainActivity", "Entering ambient mode");
         updateDisplay();
         stopListening();
     }
@@ -154,7 +160,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     @Override
     public void onExitAmbient() {
-        restartListeningService();
+//        restartListeningService();
         updateDisplay();
         super.onExitAmbient();
     }
@@ -250,9 +256,8 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     public void onTextCommandMessage(String msg) {
         Toast toast = Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG);
         toast.show();
-        Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
         if(msg.contains("not recognized")) {
-            vibrator.vibrate(new long[]{200, 400}, 0);
+            vibrator.vibrate(new long[]{0, 250, 250, 500}, -1);
         } else {
             vibrator.vibrate(500);
         }
@@ -386,18 +391,53 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     // Listening to sensor for recognizing a start gesture
 
-    private static final float NS2S = 1.0f / 1000000000.0f;
-    private static final float EPSILON = 0.3f;
-    private final float[] deltaRotationVector = new float[4];
-    private float timestamp;
-    private float[] rotationCurrent = new float[3];
+    //private float[] oldValues = new float[]{0f, 0f, 0f};
+    private float[] mRotationMatrixFromVector = new float[16];
+    private float[] mRotationMatrix = new float[16];
+    private float[] orientationVals = new float[3];
+    private float[] oldOrientationVals = new float[]{0, 0, 0};
+    private float pitchThreshold = -80f;
+    private boolean pitchReachedBefore = false;
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if(event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
-            float[] values = event.values;
-            Log.d("SensorEvent", "x: " + values[0] + "; y: " + values[1] + "; z: " + values[2]);
+        if(event.sensor.getType() == Sensor.TYPE_GAME_ROTATION_VECTOR) {
+//            float[] values = event.values;
+//            if(values[0] != oldValues[0] || values[1] != oldValues[1] || values[2] != oldValues[2]) {
+//                Log.d("SensorEvent", "x: " + values[0] + "; y: " + values[1] + "; z: " + values[2]);
+//            }
+//            oldValues[0] = values[0];
+//            oldValues[1] = values[1];
+//            oldValues[2] = values[2];
 
+            // Convert the rotation-vector to a 4x4 matrix.
+            SensorManager.getRotationMatrixFromVector(mRotationMatrixFromVector, event.values);
+            SensorManager.remapCoordinateSystem(mRotationMatrixFromVector,
+                    SensorManager.AXIS_X, SensorManager.AXIS_Z,
+                    mRotationMatrix);
+            SensorManager.getOrientation(mRotationMatrix, orientationVals);
+
+            // Optionally convert the result from radians to degrees
+            orientationVals[0] = (float) Math.toDegrees(orientationVals[0]);
+            orientationVals[1] = (float) Math.toDegrees(orientationVals[1]);
+            orientationVals[2] = (float) Math.toDegrees(orientationVals[2]);
+
+//            if(orientationVals[0] != oldOrientationVals[0] || orientationVals[1] != oldOrientationVals[1] || orientationVals[2] != oldOrientationVals[2]) {
+//                Log.d("SensorEvent", " Yaw: " + orientationVals[0] + " Pitch: "
+//                        + orientationVals[1] + " Roll (not used): "
+//                        + orientationVals[2]);
+//            }
+
+            oldOrientationVals[0] = orientationVals[0];
+            oldOrientationVals[1] = orientationVals[1];
+            oldOrientationVals[2] = orientationVals[2];
+
+            if(orientationVals[1] < pitchThreshold && !pitchReachedBefore) {
+                pitchReachedBefore = true;
+                vibrator.vibrate(1000);
+            } else if(orientationVals[1] > pitchThreshold && pitchReachedBefore) {
+                pitchReachedBefore = false;
+            }
         }
     }
 

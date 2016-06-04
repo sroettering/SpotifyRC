@@ -469,6 +469,8 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
                 currentQueue.put(track.uri, track);
             }
         }
+        mPlayer.setShuffle(isShuffle);
+        mPlayer.setRepeat(true);
         startTimer();
     }
 
@@ -606,7 +608,8 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
         Log.d("SpotifyManager", "Playback event received: " + eventType.name());
         if(eventType.name().equals("TRACK_CHANGED")) {
             TrackSimple track = currentQueue.get(state.trackUri);
-            ((MainActivity) mContext).updateCurrentTrackInfo(track.artists.get(0).name, track.name, (int)track.duration_ms);
+            if(track != null)
+                ((MainActivity) mContext).updateCurrentTrackInfo(track.artists.get(0).name, track.name, (int)track.duration_ms);
         }
         if(eventType.name().equals("PLAY")) {
             ((MainActivity) mContext).updatePlayButton(true);

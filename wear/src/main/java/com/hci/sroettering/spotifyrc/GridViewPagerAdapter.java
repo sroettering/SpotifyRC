@@ -53,13 +53,13 @@ public class GridViewPagerAdapter extends GridPagerAdapter implements WearableLi
 
     // 0 = playlist; 1 = album; 2 = song; 3 = artist; 4 = category
     public void setData(String[] data, int type) {
-        Log.d("GVPA", "setting data with type: " + type);
+        //Log.d("GVPA", "setting data with type: " + type);
         List<RightListDataItem> dataList = new ArrayList<>();
         String[] splitItem;
         if(type == 2) {
             for(int i = 1; i < data.length; i++) {
                 splitItem = data[i].split("--");
-                Log.d("GVPA", "creating new ListItem with duration: " + splitItem[1]);
+                //Log.d("GVPA", "creating new ListItem with duration: " + splitItem[1]);
                 RightListDataItem item =
                         new RightListDataItem(splitItem[0], splitItem[1], splitItem[2], 2);
                 dataList.add(item);

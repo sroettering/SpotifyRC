@@ -61,6 +61,7 @@ public class VoiceRecognitionListener implements RecognitionListener {
 
     @Override
     public void onEndOfSpeech() {
+        listener.onListeningError();
         Log.d("VRListener", "Waiting for result...");
     }
 
@@ -70,7 +71,8 @@ public class VoiceRecognitionListener implements RecognitionListener {
             listener.onListeningError();
             listener.restartListeningService();
         }
-        Log.d("VRListener", "Got Error: " + errorMessages[error]);
+        if(error >= 0 && error <= 9)
+            Log.d("VRListener", "Got Error: " + errorMessages[error]);
     }
 
     @Override

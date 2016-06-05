@@ -6,6 +6,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Vibrator;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -15,6 +16,7 @@ import android.support.wearable.view.DotsPageIndicator;
 import android.support.wearable.view.GridViewPager;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
@@ -33,9 +35,10 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     private CommunicationManager commManager;
 
     private SpeechRecognizer speechRecognizer;
-    private long listeningStartTime;
-    private long currentListeningTime;
-    private final long listeningTimeMax = Long.MAX_VALUE;//30000; // ms
+    private final long activeTimeMax = 25000; // ms
+
+    private Handler ambientHandler;
+    private Runnable ambientRunnable;
 
     private SensorManager mSensorManager;
     private AndroidWiigee aWiigee;
@@ -54,7 +57,6 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         setAmbientEnabled();
-        //getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         // UI
         pager = (GridViewPager) findViewById(R.id.pager);
@@ -73,9 +75,16 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         commManager.sendDataRequest();
 
         // Voice Control
-//        VoiceRecognitionListener.getInstance().setListener(this);
-        currentListeningTime = 0;
-        listeningStartTime = -1;
+        VoiceRecognitionListener.getInstance().setListener(this);
+
+        // Handler for keeping the screen on for a fixed time
+        ambientHandler = new Handler();
+        ambientRunnable = new Runnable() {
+            @Override
+            public void run() {
+                setScreenAlwaysOn(false);
+            }
+        };
 
         // Gesture Control
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
@@ -94,21 +103,21 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     public void onResume() {
         super.onResume();
         if(!isAmbient()) {
-//            restartListeningService();
+            restartListeningService();
         }
         Log.d("MainAcitivity", "onResume");
         //Log.d("Sensor", "Available Sensors: " + mSensorManager.getSensorList(Sensor.TYPE_ALL).toString());
         mSensorManager.registerListener(this,
                 mSensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR),
                 SensorManager.SENSOR_DELAY_NORMAL);
-//        mSensorManager.registerListener(aWiigee.getDevice(),
-//                mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-//                SensorManager.SENSOR_DELAY_GAME);
-//        try {
-//            aWiigee.getDevice().setAccelerationEnabled(true);
-//        } catch (IOException e) {
-//            Log.e(getClass().toString(), e.getMessage(), e);
-//        }
+        mSensorManager.registerListener(aWiigee.getDevice(),
+                mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
+                SensorManager.SENSOR_DELAY_GAME);
+        try {
+            aWiigee.getDevice().setAccelerationEnabled(true);
+        } catch (IOException e) {
+            Log.e(getClass().toString(), e.getMessage(), e);
+        }
     }
 
     @Override
@@ -116,7 +125,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         stopListening();
         Log.d("MainAcitivity", "onPause");
         mSensorManager.unregisterListener(this);
-//        mSensorManager.unregisterListener(aWiigee.getDevice());
+        mSensorManager.unregisterListener(aWiigee.getDevice());
         try {
             aWiigee.getDevice().setAccelerationEnabled(false);
         } catch (Exception e) {
@@ -160,8 +169,10 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     @Override
     public void onExitAmbient() {
-//        restartListeningService();
+        restartListeningService();
         updateDisplay();
+        setScreenAlwaysOn(true);
+        ambientHandler.postDelayed(ambientRunnable, activeTimeMax);
         super.onExitAmbient();
     }
 
@@ -175,6 +186,16 @@ public class MainActivity extends WearableActivity implements CommunicationManag
             BoxInsetLayout layout = (BoxInsetLayout) findViewById(R.id.parent_layout);
             layout.setBackgroundColor(getResources().getColor(R.color.primary));
         }
+    }
+
+    private void setScreenAlwaysOn(boolean alwaysOn) {
+        if(alwaysOn) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        } else {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            vibrator.vibrate(150);
+        }
+
     }
 
     // onClick Methods
@@ -198,7 +219,8 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     public void onVolumeDownBtnClicked(View v) {
         //commManager.sendVolumeDown();
-        fireWiigeeButtonEvent(TRAIN_BUTTON);
+        //fireWiigeeButtonEvent(TRAIN_BUTTON);
+        setScreenAlwaysOn(false);
     }
 
     public void onShuffleBtnClicked(View v) {
@@ -276,18 +298,6 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     }
 
     private void startListening() {
-        if(listeningStartTime != -1) {
-            currentListeningTime = System.currentTimeMillis() - listeningStartTime;
-        } else {
-            listeningStartTime = System.currentTimeMillis();
-        }
-        //Log.d("MainAcitivity", "listeningStartTime: " + listeningStartTime + "; currentListeningTime: " + currentListeningTime);
-//        if(currentListeningTime >= listeningTimeMax) {
-//            listeningStartTime = -1;
-//            currentListeningTime = 0;
-//            return;
-//        }
-
         try {
             initSpeech();
             Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);

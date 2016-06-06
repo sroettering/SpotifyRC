@@ -112,12 +112,23 @@
         <ToggleButton
             android:layout_width="20dp"
             android:layout_height="20dp"
-            android:text="New ToggleButton"
+            android:text="Speech ToggleButton"
             android:id="@+id/btn_listening"
             android:textOn=""
             android:textOff=""
             android:background="@null"
             android:button="@drawable/listening"
+            android:clickable="false" />
+
+        <ToggleButton
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:text="Gesture ToggleButton"
+            android:id="@+id/btn_gesture"
+            android:textOn=""
+            android:textOff=""
+            android:background="@null"
+            android:button="@drawable/gesture_toggle"
             android:clickable="false" />
     </LinearLayout>
 </LinearLayout>

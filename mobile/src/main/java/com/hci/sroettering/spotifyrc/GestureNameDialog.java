@@ -19,14 +19,22 @@ public class GestureNameDialog extends DialogFragment {
     // Use this instance of the interface to deliver action events
     private NoticeDialogListener mListener;
 
-    private String gestureID;
+    public static GestureNameDialog newInstance(String id) {
+        GestureNameDialog dialog = new GestureNameDialog();
+        Bundle args = new Bundle();
+        args.putString("gestureID", id);
+        dialog.setArguments(args);
+        return dialog;
+    }
 
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
 
-        String id = savedInstanceState.getString("gestureID");
+        String id = getArguments().getString("gestureID");
 
         LayoutInflater inflater = getActivity().getLayoutInflater();
         View dialogView = inflater.inflate(R.layout.gesture_name_dialog, null);

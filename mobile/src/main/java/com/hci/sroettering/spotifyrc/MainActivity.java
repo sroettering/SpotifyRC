@@ -120,6 +120,7 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
     public void updatePlayButton(boolean isPlaying) {
         ToggleButton playBtn = (ToggleButton) findViewById(R.id.btn_play);
         playBtn.setChecked(isPlaying);
+        syncWatchGUI();
     }
 
     // Media Control Functionality
@@ -285,10 +286,7 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
     @Override
     public void onGestureTrained(String msg) {
         curGestureID = msg;
-        GestureNameDialog dialog = new GestureNameDialog();
-        Bundle args = new Bundle();
-        args.putString("gestureID", msg);
-        dialog.setArguments(args);
+        GestureNameDialog dialog = GestureNameDialog.newInstance(msg);
         dialog.show(getFragmentManager(), "GestureNameDialog");
     }
 

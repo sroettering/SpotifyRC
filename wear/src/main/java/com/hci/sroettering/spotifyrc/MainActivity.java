@@ -27,6 +27,7 @@ import com.hci.sroettering.spotifyrc.wiigee.event.GestureEvent;
 import com.hci.sroettering.spotifyrc.wiigee.event.GestureListener;
 import com.hci.sroettering.spotifyrc.wiigee.event.GestureTrainedEvent;
 import com.hci.sroettering.spotifyrc.wiigee.event.GestureTrainedListener;
+import com.hci.sroettering.spotifyrc.wiigee.filter.HighPassFilter;
 import com.hci.sroettering.spotifyrc.wiigee.logic.TriggeredProcessingUnit;
 import com.hci.sroettering.spotifyrc.wiigee.util.FileIO;
 
@@ -47,7 +48,6 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     private SpeechRecognizer speechRecognizer;
     private final long activeTimeMax = 25000; // ms
-
     private Handler ambientHandler;
     private Runnable ambientRunnable;
 
@@ -55,9 +55,15 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     private AndroidWiigee aWiigee;
 
     private HashMap<Integer, GestureCommand> gestureMap;
+    private Handler gestureHandler;
+    private Runnable gestureRunnable;
+    private final long gestureRecognitionRunTime = 3000;
+    private final long gestureRecognitionStartTime = 1000;
+    private boolean isTraining = false;
 
     private Vibrator vibrator;
 
+    private static final int MOTION = 0;
     private static final int TRAIN_BUTTON = 1;
     private static final int CLOSE_GESTURE_BUTTON = 2;
     private static final int RECOGNITION_BUTTON = 3;
@@ -102,6 +108,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         // Gesture Control
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         aWiigee = new AndroidWiigee();
+        //aWiigee.addFilter(new HighPassFilter());
         aWiigee.addGestureListener(this);
         aWiigee.setTrainButton(TRAIN_BUTTON);
         aWiigee.setCloseGestureButton(CLOSE_GESTURE_BUTTON);
@@ -111,6 +118,20 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         trainButtonDown = false;
         recognitionButtonDown = false;
         initGestureMap();
+
+        gestureHandler = new Handler();
+        gestureRunnable = new Runnable() {
+            @Override
+            public void run() {
+                fireWiigeeButtonEvent(RECOGNITION_BUTTON);
+                gestureHandler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        fireWiigeeButtonEvent(RECOGNITION_BUTTON);
+                    }
+                }, gestureRecognitionRunTime);
+            }
+        };
 
         vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
     }
@@ -128,7 +149,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
                 SensorManager.SENSOR_DELAY_NORMAL);
         mSensorManager.registerListener(aWiigee.getDevice(),
                 mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-                SensorManager.SENSOR_DELAY_GAME);
+                SensorManager.SENSOR_DELAY_NORMAL);
         try {
             aWiigee.getDevice().setAccelerationEnabled(true);
         } catch (IOException e) {
@@ -189,6 +210,9 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         updateDisplay();
         setScreenAlwaysOn(true);
         ambientHandler.postDelayed(ambientRunnable, activeTimeMax);
+        if(!isTraining) {
+            gestureHandler.postDelayed(gestureRunnable, gestureRecognitionStartTime);
+        }
         super.onExitAmbient();
     }
 
@@ -234,8 +258,11 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     }
 
     public void onVolumeDownBtnClicked(View v) {
-//        commManager.sendVolumeDown();
-        fireWiigeeButtonEvent(TRAIN_BUTTON);
+        if(!isTraining) {
+            commManager.sendVolumeDown();
+        } else {
+            fireWiigeeButtonEvent(TRAIN_BUTTON);
+        }
     }
 
     public void onShuffleBtnClicked(View v) {
@@ -245,8 +272,11 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     }
 
     public void onVolumeUpBtnClicked(View v) {
-//        commManager.sendVolumeUp();
-        fireWiigeeButtonEvent(CLOSE_GESTURE_BUTTON);
+        if(!isTraining) {
+            commManager.sendVolumeUp();
+        } else {
+            fireWiigeeButtonEvent(CLOSE_GESTURE_BUTTON);
+        }
     }
 
 
@@ -470,11 +500,13 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     @Override
     public void gestureReceived(GestureEvent event) {
         Log.d("AndroidWiigee", "received event: " + event.toString() + "; id: " + event.getId());
-        int id = event.getId();
-        if(gestureMap.containsKey(id)) {
-            GestureCommand cmd = gestureMap.get(id);
-            if(cmd != null) {
-                cmd.execute();
+        if(event.getProbability() >= 0.8) {
+            int id = event.getId();
+            if (gestureMap.containsKey(id)) {
+                GestureCommand cmd = gestureMap.get(id);
+                if (cmd != null) {
+                    cmd.execute();
+                }
             }
         }
     }

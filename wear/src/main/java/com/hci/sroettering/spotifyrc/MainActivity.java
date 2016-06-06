@@ -6,6 +6,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Vibrator;
 import android.speech.RecognizerIntent;
@@ -24,11 +25,21 @@ import android.widget.ToggleButton;
 import com.hci.sroettering.spotifyrc.wiigee.control.AndroidWiigee;
 import com.hci.sroettering.spotifyrc.wiigee.event.GestureEvent;
 import com.hci.sroettering.spotifyrc.wiigee.event.GestureListener;
+import com.hci.sroettering.spotifyrc.wiigee.event.GestureTrainedEvent;
+import com.hci.sroettering.spotifyrc.wiigee.event.GestureTrainedListener;
+import com.hci.sroettering.spotifyrc.wiigee.logic.TriggeredProcessingUnit;
+import com.hci.sroettering.spotifyrc.wiigee.util.FileIO;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class MainActivity extends WearableActivity implements CommunicationManager.MessageListener, IVoiceControl, GestureListener, SensorEventListener {
+public class MainActivity extends WearableActivity implements CommunicationManager.MessageListener,
+        IVoiceControl, GestureListener, GestureTrainedListener, SensorEventListener {
 
     private GridViewPagerAdapter pagerAdapter;
     private GridViewPager pager;
@@ -42,6 +53,8 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     private SensorManager mSensorManager;
     private AndroidWiigee aWiigee;
+
+    private HashMap<Integer, GestureCommand> gestureMap;
 
     private Vibrator vibrator;
 
@@ -93,8 +106,11 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         aWiigee.setTrainButton(TRAIN_BUTTON);
         aWiigee.setCloseGestureButton(CLOSE_GESTURE_BUTTON);
         aWiigee.setRecognitionButton(RECOGNITION_BUTTON);
+        ((TriggeredProcessingUnit) aWiigee.getDevice().getProcessingUnit()).addGestureTrainedListener(this);
+        initGesturesFromFile();
         trainButtonDown = false;
         recognitionButtonDown = false;
+        initGestureMap();
 
         vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
     }
@@ -219,8 +235,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     public void onVolumeDownBtnClicked(View v) {
         //commManager.sendVolumeDown();
-        //fireWiigeeButtonEvent(TRAIN_BUTTON);
-        setScreenAlwaysOn(false);
+        fireWiigeeButtonEvent(TRAIN_BUTTON);
     }
 
     public void onShuffleBtnClicked(View v) {
@@ -278,11 +293,21 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     public void onTextCommandMessage(String msg) {
         Toast toast = Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG);
         toast.show();
-        if(msg.contains("not recognized")) {
+        if (msg.contains("not recognized")) {
             vibrator.vibrate(new long[]{0, 250, 250, 500}, -1);
         } else {
             vibrator.vibrate(500);
         }
+    }
+
+    @Override
+    public void onGestureNamed(String msg) {
+        String[] split = msg.split(";");
+        if(split.length == 2) {
+            Log.d("MainActivity", "Gesture " + split[0] + " was named: " + split[1]);
+        }
+        int id = Integer.parseInt(split[0]);
+        aWiigee.getDevice().saveGesture(id, id+split[1]);
     }
 
 
@@ -374,16 +399,87 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     // AndroidWiigee Gesture Recognition
 
+    private void initGestureMap() {
+        this.gestureMap = new HashMap<>();
+        gestureMap.put(0, new GestureCommand() {
+            @Override
+            public void execute() {
+                onPlayBtnClicked(findViewById(R.id.btn_play_pause));
+            }
+        });
+        gestureMap.put(1, new GestureCommand() {
+            @Override
+            public void execute() {
+                onPrevBtnClicked(findViewById(R.id.btn_prev));
+            }
+        });
+        gestureMap.put(2, new GestureCommand() {
+            @Override
+            public void execute() {
+                onNextBtnClicked(findViewById(R.id.btn_next));
+            }
+        });
+        gestureMap.put(3, new GestureCommand() {
+            @Override
+            public void execute() {
+                onShuffleBtnClicked(findViewById(R.id.ctrl_shuffle));
+            }
+        });
+        gestureMap.put(4, new GestureCommand() {
+            @Override
+            public void execute() {
+                onVolumeDownBtnClicked(findViewById(R.id.ctrl_volume_down));
+            }
+        });
+        gestureMap.put(5, new GestureCommand() {
+            @Override
+            public void execute() {
+                onVolumeUpBtnClicked(findViewById(R.id.ctrl_volume_up));
+            }
+        });
+    }
+
+    private void deleteSavedGestures() {
+        // TODO
+    }
+
+    private void initGesturesFromFile() {
+        Log.d("MainActivity", "ExternalStorageDirectory: " + Environment.getExternalStorageDirectory());
+        List<String> fileNames = new ArrayList<String>(Arrays.asList(FileIO.getAllFileNames()));
+        if(fileNames == null) return;
+
+        Collections.sort(fileNames);
+        String gestureName = "";
+        for(String s: fileNames) {
+            Log.d("MainActivity", "Filename: " + s);
+            gestureName = s.replace(".txt", "");
+            aWiigee.getDevice().loadGesture(gestureName);
+        }
+    }
+
     @Override
     public void gestureReceived(GestureEvent event) {
-        Log.d("AndroidWiigee", "received event: " + event.toString());
+        Log.d("AndroidWiigee", "received event: " + event.toString() + "; id: " + event.getId());
+        int id = event.getId();
+        if(gestureMap.containsKey(id)) {
+            GestureCommand cmd = gestureMap.get(id);
+            if(cmd != null) {
+                cmd.execute();
+            }
+        }
+    }
+
+    @Override
+    public void gestureTrained(GestureTrainedEvent event) {
+        Log.d("MainActivity", "Gesture Trained! Waiting for a name...");
+        int id = event.getID();
+        commManager.sendGestureTrained(""+id);
     }
 
     public void fireWiigeeButtonEvent(int buttonType) {
         switch (buttonType) {
             case TRAIN_BUTTON:
                 trainButtonDown = !trainButtonDown;
-                Log.d("MainActivity", "trainButtonDown: " + trainButtonDown);
                 if(trainButtonDown) aWiigee.getDevice().fireButtonPressedEvent(buttonType);
                 else aWiigee.getDevice().fireButtonReleasedEvent(buttonType);
                 break;

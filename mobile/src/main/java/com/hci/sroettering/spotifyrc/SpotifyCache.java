@@ -5,7 +5,6 @@ import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -27,9 +26,11 @@ public class SpotifyCache {
     // paths and file names
     private static final String directoryName = "/SpotifyRC";
     private static final String fileName_audioFeatures = "AudioFeatures.csv";
+    private static final String fileName_lastPlayed = "lastPlayed.csv";
 
     // file contents
     private static List<String> audioFeatures_content;
+    private static List<String> lastPlayed_content;
 
 
 
@@ -51,6 +52,25 @@ public class SpotifyCache {
 
     public static void saveAudioFeatures(String features) {
         writeToFile(fileName_audioFeatures, features);
+    }
+
+
+    /*
+     * Last Track Queue
+     */
+    public static boolean hasLastPlayedQueue() {
+        if(lastPlayed_content == null || lastPlayed_content.size() <= 0) {
+            lastPlayed_content = readFromFile(fileName_lastPlayed);
+        }
+        return lastPlayed_content != null && lastPlayed_content.size() > 0;
+    }
+
+    public static List<String> getLastPlayedQueue() {
+        return lastPlayed_content;
+    }
+
+    public static void saveLastPlayedQueue(String lastPlayed) {
+        writeToFile(fileName_lastPlayed, lastPlayed);
     }
 
 

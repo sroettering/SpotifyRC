@@ -33,6 +33,7 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
     private final String updatePath = "/playerUpdate";
     private final String dataPath = "/listData";
     private final String sensorPath = "/sensorData";
+    private final String gestureTrainPath = "/gestureTrain";
     private GoogleApiClient mApiClient;
     private Context mContext;
     private List<MessageListener> listeners;
@@ -102,6 +103,10 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
             for(MessageListener msgListener: listeners) {
                 msgListener.onUpdateMessage(msg);
             }
+        } else if(msgPath.equals(gestureTrainPath)) {
+            for(MessageListener msgListener: listeners) {
+                msgListener.onGestureTrained(msg);
+            }
         } else if(msgPath.equals(dataPath)) {
             // should never happen on handheld
         }
@@ -162,6 +167,11 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
         sendMessage(textCmdPath, message);
     }
 
+    // send name for last trained gesture for filesaving purpose
+    public void sendTrainedGestureName(String id, String name) {
+        sendMessage(gestureTrainPath, id + ";" + name);
+    }
+
 
     private void sendMessage(final String path, final String text) {
         new Thread(new Runnable() {
@@ -183,6 +193,7 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
         void onTextCommandMessage(String msg);
         void onSensorMessage(String msg);
         void onUpdateMessage(String msg);
+        void onGestureTrained(String msg);
     }
 
 }

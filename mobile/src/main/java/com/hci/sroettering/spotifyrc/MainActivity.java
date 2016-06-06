@@ -1,5 +1,6 @@
 package com.hci.sroettering.spotifyrc;
 
+import android.app.DialogFragment;
 import android.content.Intent;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.view.ViewPager;
@@ -7,6 +8,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -18,7 +20,8 @@ import com.hci.sroettering.spotifyrc.voicecontrol.VoiceCommandConverter;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class MainActivity extends AppCompatActivity implements PagerListFragment.OnFragmentInteractionListener, CommunicationManager.MessageListener {
+public class MainActivity extends AppCompatActivity implements PagerListFragment.OnFragmentInteractionListener,
+        CommunicationManager.MessageListener, GestureNameDialog.NoticeDialogListener {
 
     private SpotifyManager mSpotifyManager;
     private ViewPager pager;
@@ -29,6 +32,8 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
 
     private String curTrack;
     private String curArtist;
+
+    private String curGestureID;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -155,6 +160,7 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
 
     public void prevTrack(View v) {
         mSpotifyManager.prevTrack();
+        //onGestureTrained("testGesture");
     }
 
     public void onShuffleBtnClick(View v) {
@@ -275,6 +281,26 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
             ToggleButton btn = (ToggleButton) findViewById(R.id.btn_play);
             btn.setChecked(false);
         }
+    }
+
+    @Override
+    public void onGestureTrained(String msg) {
+        curGestureID = msg;
+        GestureNameDialog dialog = new GestureNameDialog();
+        dialog.show(getFragmentManager(), "GestureNameDialog");
+    }
+
+    @Override
+    public void onDialogPositiveClick(GestureNameDialog dialog) {
+        EditText textField = (EditText) dialog.getDialog().findViewById(R.id.gnd_name);
+        String name = textField.getText().toString();
+        Log.d("MainActivity", "Name for Gesture: " + name);
+        commManager.sendTrainedGestureName(curGestureID, name);
+    }
+
+    @Override
+    public void onDialogNegativeClick(GestureNameDialog dialog) {
+        dialog.getDialog().cancel();
     }
 
     private void evaluateCasualCommand(String audioFeature, String multiplier) {

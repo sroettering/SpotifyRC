@@ -33,6 +33,7 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
     private final String updatePath = "/playerUpdate";
     private final String dataPath = "/listData";
     private final String sensorPath = "/sensorData";
+    private final String gestureTrainPath = "/gestureTrain";
     private GoogleApiClient mApiClient;
     private Context mContext;
     private List<MessageListener> listeners;
@@ -96,6 +97,10 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
         } else if(msgPath.equals(textCmdPath)) {
             for(MessageListener msgListener: listeners) {
                 msgListener.onTextCommandMessage(msg);
+            }
+        } else if(msgPath.equals(gestureTrainPath)) {
+            for(MessageListener msgListener: listeners) {
+                msgListener.onGestureNamed(msg);
             }
         } else if(msgPath.equals(cmdPath)) {
             // should never happen on watch
@@ -173,6 +178,10 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
         sendMessage(textCmdPath, command);
     }
 
+    public void sendGestureTrained(String id) {
+        sendMessage(gestureTrainPath, id);
+    }
+
 
     private void sendMessage(final String path, final String text) {
         new Thread(new Runnable() {
@@ -193,6 +202,7 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
         void onUpdateMessage(String msg);
         void onDataMessage(String msg);
         void onTextCommandMessage(String msg);
+        void onGestureNamed(String msg);
     }
 
 }

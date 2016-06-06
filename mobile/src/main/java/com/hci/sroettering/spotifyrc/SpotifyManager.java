@@ -315,6 +315,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
                 ldc.setCategories(categoriesPager.categories.items);
                 ((MainActivity) mContext).updateData(ldc.getCategories(), 4);
                 Log.d("SpotifyManager", "Initialized Categories");
+                loadLastPlayedQueue();
                 updateWatchData();
                 ldc.featureDatabase.setReady();
                 ldc.featureDatabase.retrieveAudioFeaturesForQueuedTracks();
@@ -365,23 +366,26 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
 
     // Playback
 
-    public void play(Track track) {
-        if(mPlayer.isInitialized()) {
-            currentQueue.clear();
-            currentQueue.put(track.uri, track);
-            mPlayer.play(track.uri);
-            mPlayer.setRepeat(true);
-            startTimer();
-        }
-    }
+//    public void play(Track track) {
+//        if(mPlayer.isInitialized()) {
+//            currentQueue.clear();
+//            currentQueue.put(track.uri, track);
+//            mPlayer.play(track.uri);
+//            mPlayer.setRepeat(true);
+//            startTimer();
+//            saveLastPlayedQueue();
+//        }
+//    }
 
     public void play(List<TrackSimple> tracks) {
         if(mPlayer.isInitialized()) {
             currentQueue.clear();
+            List<String> trackUris = new ArrayList<>();
             for (TrackSimple track : tracks) {
                 currentQueue.put(track.uri, track);
+                trackUris.add(track.uri);
             }
-            mPlayer.play(keySetToList());
+            mPlayer.play(trackUris);
             mPlayer.setShuffle(isShuffle);
             startTimer();
         }
@@ -457,21 +461,25 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
 
     public void loadSong(int pos) {
         List<SavedTrack> songs = ldc.getSongs();
+        List<TrackSimple> tracks = new ArrayList<>();
         //play(songs.get(pos).track);
         currentQueue.clear();
-        mPlayer.queue(songs.get(pos).track.uri);
-        currentQueue.put(songs.get(pos).track.uri, songs.get(pos).track);
+        //mPlayer.queue(songs.get(pos).track.uri);
         // add all other saved songs to queue, too, as spotify does
         for(int i = 0; i < songs.size(); i++) {
             if(i != pos) {
                 Track track = songs.get(i).track;
-                mPlayer.queue(track.uri);
+                tracks.add(track);
+                //mPlayer.queue(track.uri);
                 currentQueue.put(track.uri, track);
             }
         }
-        mPlayer.setShuffle(isShuffle);
-        mPlayer.setRepeat(true);
-        startTimer();
+        currentQueue.put(songs.get(pos).track.uri, songs.get(pos).track);
+        tracks.add(0, songs.get(pos).track); // add the clicked song last and to the front
+        //mPlayer.setShuffle(isShuffle);
+        //mPlayer.setRepeat(true);
+        //startTimer();
+        play(tracks);
     }
 
     public void loadAlbum(int pos) {
@@ -555,7 +563,7 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
         AudioManager am = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
         int currentVolume = am.getStreamVolume(AudioManager.STREAM_MUSIC);
         am.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume - 2, 0);
-        Log.d("SpotifyManager", "lowering volume down to: " + Math.max(0 ,(currentVolume - 2)));
+        Log.d("SpotifyManager", "lowering volume down to: " + Math.max(0, (currentVolume - 2)));
     }
 
     public SpotifyService getSpotifyService() {
@@ -572,9 +580,69 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
     }
 
 
+    /*
+     * Track encoding:
+     *
+     * id;uri;name;artist[0].name;duration;
+     *
+     */
+    private void loadLastPlayedQueue() {
+        if(SpotifyCache.hasLastPlayedQueue()) {
+            List<String> queueInfo = SpotifyCache.getLastPlayedQueue();
+            List<TrackSimple> tracks = new ArrayList<>();
+            ArtistSimple artist = null;
+            String[] split;
+            for(String s: queueInfo) {
+                split = s.split(";");
+                if(split.length == 5) {
+                    TrackSimple track = new TrackSimple();
+                    track.id = split[0];
+                    track.uri = split[1];
+                    track.name = split[2];
+                    artist = new ArtistSimple();
+                    artist.name = split[3];
+                    track.artists = new ArrayList<>();
+                    track.artists.add(artist);
+                    track.duration_ms = Long.parseLong(split[4]);
+                    tracks.add(track);
+                }
+            }
+            play(tracks);
+            mPlayer.pause();
+        }
+    }
+
+    /*
+     * Track encoding:
+     *
+     * id;uri;name;artist[0].name;duration;
+     *
+     */
+    private void saveLastPlayedQueue() {
+        String s = "";
+        if(!currentQueue.isEmpty()) {
+            TrackSimple currentTrack = currentQueue.get(playerState.trackUri);
+            s += currentTrack.id + ";" + currentTrack.uri + ";" + currentTrack.name + ";"
+                    + currentTrack.artists.get(0).name + ";" + currentTrack.duration_ms + ";\n";
+            String currentUri = currentTrack.uri;
+
+            for(String uri: currentQueue.keySet()) {
+                if(!uri.equals(currentUri)) {
+                    currentTrack = currentQueue.get(uri);
+                    s += currentTrack.id + ";" + uri + ";" + currentTrack.name + ";"
+                            + currentTrack.artists.get(0).name + ";" + currentTrack.duration_ms + ";\n";
+                }
+            }
+
+            SpotifyCache.saveLastPlayedQueue(s);
+        }
+    }
+
+
     // Callbacks
 
     public void onDestroy() {
+        saveLastPlayedQueue();
         Spotify.destroyPlayer(this);
     }
 
@@ -606,18 +674,23 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
     @Override
     public void onPlaybackEvent(EventType eventType, PlayerState state) {
         Log.d("SpotifyManager", "Playback event received: " + eventType.name());
+        playerState = state;
         if(eventType.name().equals("TRACK_CHANGED")) {
             TrackSimple track = currentQueue.get(state.trackUri);
-            if(track != null)
-                ((MainActivity) mContext).updateCurrentTrackInfo(track.artists.get(0).name, track.name, (int)track.duration_ms);
+            if(track != null) {
+                ((MainActivity) mContext).updateCurrentTrackInfo(track.artists.get(0).name, track.name, (int) track.duration_ms);
+            }
+            saveLastPlayedQueue();
         }
         if(eventType.name().equals("PLAY")) {
             ((MainActivity) mContext).updatePlayButton(true);
         }
+        if(eventType.name().equals("PAUSE")) {
+            ((MainActivity) mContext).updatePlayButton(false);
+        }
         if(eventType.name().equals("END_OF_CONTEXT")) {
             mPlayer.resume();
         }
-        playerState = state;
     }
 
     @Override

@@ -7,7 +7,9 @@ import android.app.DialogFragment;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 
 /**
  * Created by sroettering on 06.06.16.
@@ -17,13 +19,22 @@ public class GestureNameDialog extends DialogFragment {
     // Use this instance of the interface to deliver action events
     private NoticeDialogListener mListener;
 
+    private String gestureID;
+
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
 
+        String id = savedInstanceState.getString("gestureID");
+
         LayoutInflater inflater = getActivity().getLayoutInflater();
-        builder.setView(inflater.inflate(R.layout.gesture_name_dialog, null))
+        View dialogView = inflater.inflate(R.layout.gesture_name_dialog, null);
+
+        EditText idField = (EditText) dialogView.findViewById(R.id.gnd_id);
+        idField.setText(id);
+
+        builder.setView(dialogView)
                 .setPositiveButton(R.string.save, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {

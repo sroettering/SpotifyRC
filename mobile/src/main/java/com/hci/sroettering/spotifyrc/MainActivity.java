@@ -160,7 +160,6 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
 
     public void prevTrack(View v) {
         mSpotifyManager.prevTrack();
-        //onGestureTrained("testGesture");
     }
 
     public void onShuffleBtnClick(View v) {
@@ -287,15 +286,20 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
     public void onGestureTrained(String msg) {
         curGestureID = msg;
         GestureNameDialog dialog = new GestureNameDialog();
+        Bundle args = new Bundle();
+        args.putString("gestureID", msg);
+        dialog.setArguments(args);
         dialog.show(getFragmentManager(), "GestureNameDialog");
     }
 
     @Override
     public void onDialogPositiveClick(GestureNameDialog dialog) {
-        EditText textField = (EditText) dialog.getDialog().findViewById(R.id.gnd_name);
-        String name = textField.getText().toString();
-        Log.d("MainActivity", "Name for Gesture: " + name);
-        commManager.sendTrainedGestureName(curGestureID, name);
+        EditText nameField = (EditText) dialog.getDialog().findViewById(R.id.gnd_name);
+        EditText idField = (EditText) dialog.getDialog().findViewById(R.id.gnd_id);
+        String name = nameField.getText().toString();
+        String id = idField.getText().toString();
+        //Log.d("MainActivity", "Name for Gesture: " + name);
+        commManager.sendTrainedGestureName(curGestureID, id+name);
     }
 
     @Override

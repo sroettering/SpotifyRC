@@ -234,7 +234,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     }
 
     public void onVolumeDownBtnClicked(View v) {
-        //commManager.sendVolumeDown();
+//        commManager.sendVolumeDown();
         fireWiigeeButtonEvent(TRAIN_BUTTON);
     }
 
@@ -245,7 +245,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     }
 
     public void onVolumeUpBtnClicked(View v) {
-        //commManager.sendVolumeUp();
+//        commManager.sendVolumeUp();
         fireWiigeeButtonEvent(CLOSE_GESTURE_BUTTON);
     }
 
@@ -307,7 +307,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
             Log.d("MainActivity", "Gesture " + split[0] + " was named: " + split[1]);
         }
         int id = Integer.parseInt(split[0]);
-        aWiigee.getDevice().saveGesture(id, id+split[1]);
+        aWiigee.getDevice().saveGesture(id, split[1]);
     }
 
 
@@ -404,7 +404,9 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         gestureMap.put(0, new GestureCommand() {
             @Override
             public void execute() {
-                onPlayBtnClicked(findViewById(R.id.btn_play_pause));
+                ToggleButton btn = (ToggleButton) findViewById(R.id.btn_play_pause);
+                btn.setChecked(!btn.isChecked());
+                onPlayBtnClicked(btn);
             }
         });
         gestureMap.put(1, new GestureCommand() {
@@ -422,7 +424,10 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         gestureMap.put(3, new GestureCommand() {
             @Override
             public void execute() {
-                onShuffleBtnClicked(findViewById(R.id.ctrl_shuffle));
+                ToggleButton btn = (ToggleButton) findViewById(R.id.ctrl_shuffle);
+                btn.setChecked(!btn.isChecked());
+//                onShuffleBtnClicked(btn);
+                Log.d("MainActivity", "Everday I'm Shuffling");
             }
         });
         gestureMap.put(4, new GestureCommand() {
@@ -437,6 +442,11 @@ public class MainActivity extends WearableActivity implements CommunicationManag
                 onVolumeUpBtnClicked(findViewById(R.id.ctrl_volume_up));
             }
         });
+    }
+
+    private void setGestureButtonChecked(boolean checked) {
+        ToggleButton gestureBtn = (ToggleButton) findViewById(R.id.btn_gesture);
+        gestureBtn.setChecked(checked);
     }
 
     private void deleteSavedGestures() {
@@ -480,11 +490,13 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         switch (buttonType) {
             case TRAIN_BUTTON:
                 trainButtonDown = !trainButtonDown;
+                setGestureButtonChecked(trainButtonDown);
                 if(trainButtonDown) aWiigee.getDevice().fireButtonPressedEvent(buttonType);
                 else aWiigee.getDevice().fireButtonReleasedEvent(buttonType);
                 break;
             case RECOGNITION_BUTTON:
                 recognitionButtonDown = !recognitionButtonDown;
+                setGestureButtonChecked(recognitionButtonDown);
                 if(recognitionButtonDown) aWiigee.getDevice().fireButtonPressedEvent(buttonType);
                 else aWiigee.getDevice().fireButtonReleasedEvent(buttonType);
                 break;

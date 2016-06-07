@@ -83,12 +83,12 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
     }
 
     public void syncWatchGUI() {
-        ToggleButton btnShuffle = (ToggleButton) findViewById(R.id.btn_shuffle);
-        ToggleButton btnPlay = (ToggleButton) findViewById(R.id.btn_play);
-        commManager.sendGUIState(btnShuffle.isChecked(), btnPlay.isChecked());
         if(!curArtist.equals("") && !curTrack.equals("")) {
             commManager.sendTrackUpdate(curArtist, curTrack);
         }
+        ToggleButton btnShuffle = (ToggleButton) findViewById(R.id.btn_shuffle);
+        ToggleButton btnPlay = (ToggleButton) findViewById(R.id.btn_play);
+        commManager.sendGUIState(btnShuffle.isChecked(), btnPlay.isChecked());
     }
 
     // Media Control Display
@@ -107,7 +107,7 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
         seekBar.setMax(10000);
         seekBar.setProgress(0);
 
-        commManager.sendTrackUpdate(artist, track);
+        syncWatchGUI();
     }
 
     public void updateProgress(int position, int duration) {
@@ -120,7 +120,6 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
     public void updatePlayButton(boolean isPlaying) {
         ToggleButton playBtn = (ToggleButton) findViewById(R.id.btn_play);
         playBtn.setChecked(isPlaying);
-        syncWatchGUI();
     }
 
     // Media Control Functionality

@@ -23,11 +23,14 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.hci.sroettering.spotifyrc.wiigee.control.AndroidWiigee;
+import com.hci.sroettering.spotifyrc.wiigee.event.AccelerationEvent;
+import com.hci.sroettering.spotifyrc.wiigee.event.AccelerationListener;
 import com.hci.sroettering.spotifyrc.wiigee.event.GestureEvent;
 import com.hci.sroettering.spotifyrc.wiigee.event.GestureListener;
 import com.hci.sroettering.spotifyrc.wiigee.event.GestureTrainedEvent;
 import com.hci.sroettering.spotifyrc.wiigee.event.GestureTrainedListener;
-import com.hci.sroettering.spotifyrc.wiigee.filter.HighPassFilter;
+import com.hci.sroettering.spotifyrc.wiigee.event.MotionStartEvent;
+import com.hci.sroettering.spotifyrc.wiigee.event.MotionStopEvent;
 import com.hci.sroettering.spotifyrc.wiigee.logic.TriggeredProcessingUnit;
 import com.hci.sroettering.spotifyrc.wiigee.util.FileIO;
 
@@ -40,14 +43,14 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends WearableActivity implements CommunicationManager.MessageListener,
-        IVoiceControl, GestureListener, GestureTrainedListener, SensorEventListener {
+        IVoiceControl, GestureListener, AccelerationListener, GestureTrainedListener, SensorEventListener {
 
     private GridViewPagerAdapter pagerAdapter;
     private GridViewPager pager;
     private CommunicationManager commManager;
 
     private SpeechRecognizer speechRecognizer;
-    private final long activeTimeMax = 25000; // ms
+    private final long activeTimeMax = 15000; // ms
     private Handler ambientHandler;
     private Runnable ambientRunnable;
 
@@ -57,11 +60,12 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     private HashMap<Integer, GestureCommand> gestureMap;
     private Handler gestureHandler;
     private Runnable gestureRunnable;
-    private final long gestureRecognitionRunTime = 3000;
+    private final long gestureRecognitionRunTime = 2500;
     private final long gestureRecognitionStartTime = 1000;
     private boolean isTraining = false;
 
     private Vibrator vibrator;
+    private long[] gestureWarmupPattern = new long[]{0, 200, 100, 200, 100, 400};
 
     private static final int MOTION = 0;
     private static final int TRAIN_BUTTON = 1;
@@ -110,6 +114,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         aWiigee = new AndroidWiigee();
         //aWiigee.addFilter(new HighPassFilter());
         aWiigee.addGestureListener(this);
+        aWiigee.getDevice().addAccelerationListener(this);
         aWiigee.setTrainButton(TRAIN_BUTTON);
         aWiigee.setCloseGestureButton(CLOSE_GESTURE_BUTTON);
         aWiigee.setRecognitionButton(RECOGNITION_BUTTON);
@@ -123,11 +128,22 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         gestureRunnable = new Runnable() {
             @Override
             public void run() {
-                fireWiigeeButtonEvent(RECOGNITION_BUTTON);
+                Log.d("Runnable", "pushing button (outer)");
+                if(isTraining) {
+                    fireWiigeeButtonEvent(TRAIN_BUTTON);
+                } else {
+                    fireWiigeeButtonEvent(RECOGNITION_BUTTON);
+                }
+
                 gestureHandler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        fireWiigeeButtonEvent(RECOGNITION_BUTTON);
+                        Log.d("Runnable", "pushing button (inner)");
+                        if(isTraining) {
+                            fireWiigeeButtonEvent(TRAIN_BUTTON);
+                        } else {
+                            fireWiigeeButtonEvent(RECOGNITION_BUTTON);
+                        }
                     }
                 }, gestureRecognitionRunTime);
             }
@@ -149,7 +165,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
                 SensorManager.SENSOR_DELAY_NORMAL);
         mSensorManager.registerListener(aWiigee.getDevice(),
                 mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-                SensorManager.SENSOR_DELAY_NORMAL);
+                SensorManager.SENSOR_DELAY_GAME);
         try {
             aWiigee.getDevice().setAccelerationEnabled(true);
         } catch (IOException e) {
@@ -211,7 +227,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         setScreenAlwaysOn(true);
         ambientHandler.postDelayed(ambientRunnable, activeTimeMax);
         if(!isTraining) {
-            gestureHandler.postDelayed(gestureRunnable, gestureRecognitionStartTime);
+//            gestureHandler.postDelayed(gestureRunnable, gestureRecognitionStartTime);
         }
         super.onExitAmbient();
     }
@@ -233,7 +249,6 @@ public class MainActivity extends WearableActivity implements CommunicationManag
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         } else {
             getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-            vibrator.vibrate(150);
         }
 
     }
@@ -266,9 +281,12 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     }
 
     public void onShuffleBtnClicked(View v) {
-        //boolean isEnabled = ((ToggleButton) v).isChecked();
-        //commManager.sendShuffle(isEnabled);
-        fireWiigeeButtonEvent(RECOGNITION_BUTTON);
+        if(!isTraining) {
+            boolean isEnabled = ((ToggleButton) v).isChecked();
+            commManager.sendShuffle(isEnabled);
+        } else {
+            fireWiigeeButtonEvent(RECOGNITION_BUTTON);
+        }
     }
 
     public void onVolumeUpBtnClicked(View v) {
@@ -456,7 +474,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
             public void execute() {
                 ToggleButton btn = (ToggleButton) findViewById(R.id.ctrl_shuffle);
                 btn.setChecked(!btn.isChecked());
-//                onShuffleBtnClicked(btn);
+                onShuffleBtnClicked(btn);
                 Log.d("MainActivity", "Everday I'm Shuffling");
             }
         });
@@ -479,10 +497,6 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         gestureBtn.setChecked(checked);
     }
 
-    private void deleteSavedGestures() {
-        // TODO
-    }
-
     private void initGesturesFromFile() {
         Log.d("MainActivity", "ExternalStorageDirectory: " + Environment.getExternalStorageDirectory());
         List<String> fileNames = new ArrayList<String>(Arrays.asList(FileIO.getAllFileNames()));
@@ -499,16 +513,36 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     @Override
     public void gestureReceived(GestureEvent event) {
-        Log.d("AndroidWiigee", "received event: " + event.toString() + "; id: " + event.getId());
-        if(event.getProbability() >= 0.8) {
+        Log.d("AndroidWiigee", "received event: " + event.isValid() + "; id: " + event.getId());
+        if(event.isValid() && event.getProbability() >= 0.99) {
+            Log.d("AndroidWiigee", "Accepted Event");
             int id = event.getId();
             if (gestureMap.containsKey(id)) {
                 GestureCommand cmd = gestureMap.get(id);
                 if (cmd != null) {
+                    vibrator.vibrate(400);
+                    Toast.makeText(getApplicationContext(), "Gesture id: " + event.getId() + " recognized",
+                            Toast.LENGTH_LONG).show();
                     cmd.execute();
                 }
             }
         }
+    }
+
+    @Override
+    public void accelerationReceived(AccelerationEvent event) {
+        //Log.d("Acceleration", "X: " + event.getX() + "; Y: " + event.getY() + "; Z: " + event.getZ() + "; Abs: " + event.getAbsValue());
+    }
+
+    @Override
+    public void motionStartReceived(MotionStartEvent event) {
+//        Log.d("AccelerationListener", "Motion Start Received");
+    }
+
+    @Override
+    public void motionStopReceived(MotionStopEvent event) {
+//        Log.d("AccelerationListener", "Motion Stop Received");
+//        Log.d("AccelerationListener", "--------------------");
     }
 
     @Override
@@ -546,19 +580,12 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     private float[] mRotationMatrix = new float[16];
     private float[] orientationVals = new float[3];
     private float[] oldOrientationVals = new float[]{0, 0, 0};
-    private float pitchThreshold = -80f;
+    private float pitchThreshold = -75f;
     private boolean pitchReachedBefore = false;
 
     @Override
     public void onSensorChanged(SensorEvent event) {
         if(event.sensor.getType() == Sensor.TYPE_GAME_ROTATION_VECTOR) {
-//            float[] values = event.values;
-//            if(values[0] != oldValues[0] || values[1] != oldValues[1] || values[2] != oldValues[2]) {
-//                Log.d("SensorEvent", "x: " + values[0] + "; y: " + values[1] + "; z: " + values[2]);
-//            }
-//            oldValues[0] = values[0];
-//            oldValues[1] = values[1];
-//            oldValues[2] = values[2];
 
             // Convert the rotation-vector to a 4x4 matrix.
             SensorManager.getRotationMatrixFromVector(mRotationMatrixFromVector, event.values);
@@ -572,19 +599,16 @@ public class MainActivity extends WearableActivity implements CommunicationManag
             orientationVals[1] = (float) Math.toDegrees(orientationVals[1]);
             orientationVals[2] = (float) Math.toDegrees(orientationVals[2]);
 
-//            if(orientationVals[0] != oldOrientationVals[0] || orientationVals[1] != oldOrientationVals[1] || orientationVals[2] != oldOrientationVals[2]) {
-//                Log.d("SensorEvent", " Yaw: " + orientationVals[0] + " Pitch: "
-//                        + orientationVals[1] + " Roll (not used): "
-//                        + orientationVals[2]);
-//            }
-
-            oldOrientationVals[0] = orientationVals[0];
-            oldOrientationVals[1] = orientationVals[1];
-            oldOrientationVals[2] = orientationVals[2];
+//            oldOrientationVals[0] = orientationVals[0];
+//            oldOrientationVals[1] = orientationVals[1];
+//            oldOrientationVals[2] = orientationVals[2];
 
             if(orientationVals[1] < pitchThreshold && !pitchReachedBefore) {
                 pitchReachedBefore = true;
-                vibrator.vibrate(1000);
+                if(!trainButtonDown && !recognitionButtonDown) {
+                    vibrator.vibrate(gestureWarmupPattern, -1);
+                    gestureHandler.postDelayed(gestureRunnable, gestureRecognitionStartTime);
+                }
             } else if(orientationVals[1] > pitchThreshold && pitchReachedBefore) {
                 pitchReachedBefore = false;
             }

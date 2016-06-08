@@ -579,8 +579,8 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     private float[] mRotationMatrixFromVector = new float[16];
     private float[] mRotationMatrix = new float[16];
     private float[] orientationVals = new float[3];
-    private float[] oldOrientationVals = new float[]{0, 0, 0};
     private float pitchThreshold = -75f;
+    private float minPitch = 0f;
     private boolean pitchReachedBefore = false;
 
     @Override
@@ -599,9 +599,11 @@ public class MainActivity extends WearableActivity implements CommunicationManag
             orientationVals[1] = (float) Math.toDegrees(orientationVals[1]);
             orientationVals[2] = (float) Math.toDegrees(orientationVals[2]);
 
-//            oldOrientationVals[0] = orientationVals[0];
-//            oldOrientationVals[1] = orientationVals[1];
-//            oldOrientationVals[2] = orientationVals[2];
+            if(orientationVals[1] < pitchThreshold && orientationVals[1] < minPitch) {
+                minPitch = orientationVals[1];
+                saveMinPitch();
+            }
+
 
             if(orientationVals[1] < pitchThreshold && !pitchReachedBefore) {
                 pitchReachedBefore = true;
@@ -619,4 +621,9 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
     }
+
+    private void saveMinPitch() {
+        
+    }
+
 }

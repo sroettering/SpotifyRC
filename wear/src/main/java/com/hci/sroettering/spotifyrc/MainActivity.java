@@ -475,7 +475,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
                 ToggleButton btn = (ToggleButton) findViewById(R.id.ctrl_shuffle);
                 btn.setChecked(!btn.isChecked());
                 onShuffleBtnClicked(btn);
-                Log.d("MainActivity", "Everday I'm Shuffling");
+                Log.d("MainActivity", "Everyday I'm Shuffling");
             }
         });
         gestureMap.put(4, new GestureCommand() {

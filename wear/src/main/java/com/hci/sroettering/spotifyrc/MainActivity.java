@@ -62,7 +62,8 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     private Runnable gestureRunnable;
     private final long gestureRecognitionRunTime = 2500;
     private final long gestureRecognitionStartTime = 1000;
-    private boolean isTraining = true;
+    private boolean isTraining = false;
+    private boolean isRecordingGesture;
 
     private Vibrator vibrator;
     private long[] gestureWarmupPattern = new long[]{0, 200, 100, 200, 100, 400};
@@ -122,6 +123,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         initGesturesFromFile();
         trainButtonDown = false;
         recognitionButtonDown = false;
+        isRecordingGesture = false;
         initGestureMap();
 
         gestureHandler = new Handler();
@@ -135,6 +137,8 @@ public class MainActivity extends WearableActivity implements CommunicationManag
                     fireWiigeeButtonEvent(RECOGNITION_BUTTON);
                 }
 
+                isRecordingGesture = true;
+
                 gestureHandler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
@@ -144,6 +148,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
                         } else {
                             fireWiigeeButtonEvent(RECOGNITION_BUTTON);
                         }
+                        isRecordingGesture = false;
                     }
                 }, gestureRecognitionRunTime);
             }
@@ -605,14 +610,14 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
             if(orientationVals[1] < pitchThreshold && !pitchReachedBefore) {
                 pitchReachedBefore = true;
-                if(!trainButtonDown && !recognitionButtonDown) {
+                if(!trainButtonDown && !recognitionButtonDown && !isRecordingGesture) {
                     vibrator.vibrate(gestureWarmupPattern, -1);
-                    //gestureHandler.postDelayed(gestureRunnable, gestureRecognitionStartTime);
+                    gestureHandler.postDelayed(gestureRunnable, gestureRecognitionStartTime);
                 }
             } else if(orientationVals[1] > pitchThreshold && pitchReachedBefore) {
                 pitchReachedBefore = false;
                 if(isTraining) {
-                    saveMinPitch();
+                    //saveMinPitch();
                 }
             }
         }

@@ -51,6 +51,23 @@ public class FileIO {
 
 	private static final String directoryName = "/SpotifyRC";
 
+	public static void writeToFile(String text, String name) {
+		try {
+			File root = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), directoryName);
+			if (!root.exists()) {
+				root.mkdirs();
+			}
+			File file = new File(root, name + ".txt");
+			BufferedWriter out = new BufferedWriter(new FileWriter(file, true));
+			out.append(text);
+			out.newLine();
+			out.flush();
+			out.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
 	public static void writeToFile(GestureModel m, String name) {
 		try {
 			// initialize file and get values

@@ -62,7 +62,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     private Runnable gestureRunnable;
     private final long gestureRecognitionRunTime = 2500;
     private final long gestureRecognitionStartTime = 1000;
-    private boolean isTraining = false;
+    private boolean isTraining = true;
 
     private Vibrator vibrator;
     private long[] gestureWarmupPattern = new long[]{0, 200, 100, 200, 100, 400};
@@ -573,13 +573,12 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     }
 
 
-    // Listening to sensor for recognizing a start gesture
+    // Listening to sensor (GAME_ROTATION_VECTOR) for recognizing a start gesture
 
-    //private float[] oldValues = new float[]{0f, 0f, 0f};
     private float[] mRotationMatrixFromVector = new float[16];
     private float[] mRotationMatrix = new float[16];
     private float[] orientationVals = new float[3];
-    private float pitchThreshold = -75f;
+    private float pitchThreshold = -72f; // every testuser reached -72 pretty easy
     private float minPitch = 0f;
     private boolean pitchReachedBefore = false;
 
@@ -601,7 +600,6 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
             if(orientationVals[1] < pitchThreshold && orientationVals[1] < minPitch) {
                 minPitch = orientationVals[1];
-                saveMinPitch();
             }
 
 
@@ -609,21 +607,26 @@ public class MainActivity extends WearableActivity implements CommunicationManag
                 pitchReachedBefore = true;
                 if(!trainButtonDown && !recognitionButtonDown) {
                     vibrator.vibrate(gestureWarmupPattern, -1);
-                    gestureHandler.postDelayed(gestureRunnable, gestureRecognitionStartTime);
+                    //gestureHandler.postDelayed(gestureRunnable, gestureRecognitionStartTime);
                 }
             } else if(orientationVals[1] > pitchThreshold && pitchReachedBefore) {
                 pitchReachedBefore = false;
+                if(isTraining) {
+                    saveMinPitch();
+                }
             }
         }
     }
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
+        // nothing to do here
     }
 
     private void saveMinPitch() {
-        
+        String fileName = "minPitchValues";
+        FileIO.writeToFile(minPitch+"\r\n", fileName);
+        minPitch = 0f;
     }
 
 }

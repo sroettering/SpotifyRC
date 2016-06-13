@@ -5,6 +5,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -22,6 +23,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import com.google.android.gms.appindexing.Action;
+import com.google.android.gms.appindexing.AppIndex;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.hci.sroettering.spotifyrc.wiigee.control.AndroidWiigee;
 import com.hci.sroettering.spotifyrc.wiigee.event.AccelerationEvent;
 import com.hci.sroettering.spotifyrc.wiigee.event.AccelerationListener;
@@ -60,13 +64,14 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     private HashMap<Integer, GestureCommand> gestureMap;
     private Handler gestureHandler;
     private Runnable gestureRunnable;
-    private final long gestureRecognitionRunTime = 2500;
-    private final long gestureRecognitionStartTime = 1000;
-    private boolean isTraining = false;
+    private final long gestureRecognitionRunTime = 2000;
+    private final long gestureRecognitionStartTime = 2000;
+    private boolean isTraining = true;
+//    private boolean isCountdown;
     private boolean isRecordingGesture;
 
     private Vibrator vibrator;
-    private long[] gestureWarmupPattern = new long[]{0, 200, 100, 200, 100, 400};
+    private long[] gestureWarmupPattern = new long[]{0, 400, 200, 400, 200, 800};
 
     private static final int MOTION = 0;
     private static final int TRAIN_BUTTON = 1;
@@ -75,6 +80,11 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     private boolean trainButtonDown;
     private boolean recognitionButtonDown;
+    /**
+     * ATTENTION: This was auto-generated to implement the App Indexing API.
+     * See https://g.co/AppIndexing/AndroidStudio for more information.
+     */
+    private GoogleApiClient client;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -123,6 +133,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         initGesturesFromFile();
         trainButtonDown = false;
         recognitionButtonDown = false;
+//        isCountdown = false;
         isRecordingGesture = false;
         initGestureMap();
 
@@ -130,20 +141,24 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         gestureRunnable = new Runnable() {
             @Override
             public void run() {
+
+//                if(!isCountdown) return; // user did not hold activation position for the required time
+
                 Log.d("Runnable", "pushing button (outer)");
-                if(isTraining) {
+                if (isTraining) {
                     fireWiigeeButtonEvent(TRAIN_BUTTON);
                 } else {
                     fireWiigeeButtonEvent(RECOGNITION_BUTTON);
                 }
 
+//                isCountdown = false;
                 isRecordingGesture = true;
 
                 gestureHandler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         Log.d("Runnable", "pushing button (inner)");
-                        if(isTraining) {
+                        if (isTraining) {
                             fireWiigeeButtonEvent(TRAIN_BUTTON);
                         } else {
                             fireWiigeeButtonEvent(RECOGNITION_BUTTON);
@@ -155,12 +170,15 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         };
 
         vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        if(!isAmbient()) {
+        if (!isAmbient()) {
             restartListeningService();
         }
         Log.d("MainAcitivity", "onResume");
@@ -197,6 +215,22 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         commManager.onStop();
         stopListening();
         super.onStop();
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        Action viewAction = Action.newAction(
+                Action.TYPE_VIEW, // TODO: choose an action type.
+                "Main Page", // TODO: Define a title for the content shown.
+                // TODO: If you have web page content that matches this app activity's content,
+                // make sure this auto-generated web page URL is correct.
+                // Otherwise, set the URL to null.
+                Uri.parse("http://host/path"),
+                // TODO: Make sure this auto-generated app URL is correct.
+                Uri.parse("android-app://com.hci.sroettering.spotifyrc/http/host/path")
+        );
+        AppIndex.AppIndexApi.end(client, viewAction);
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client.disconnect();
     }
 
     @Override
@@ -231,7 +265,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         updateDisplay();
         setScreenAlwaysOn(true);
         ambientHandler.postDelayed(ambientRunnable, activeTimeMax);
-        if(!isTraining) {
+        if (!isTraining) {
 //            gestureHandler.postDelayed(gestureRunnable, gestureRecognitionStartTime);
         }
         super.onExitAmbient();
@@ -250,7 +284,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     }
 
     private void setScreenAlwaysOn(boolean alwaysOn) {
-        if(alwaysOn) {
+        if (alwaysOn) {
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         } else {
             getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -266,7 +300,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     public void onPlayBtnClicked(View v) {
         ToggleButton btn = (ToggleButton) v;
-        if(btn.isChecked()) {
+        if (btn.isChecked()) {
             commManager.sendResume();
         } else {
             commManager.sendPause();
@@ -278,7 +312,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     }
 
     public void onVolumeDownBtnClicked(View v) {
-        if(!isTraining) {
+        if (!isTraining) {
             commManager.sendVolumeDown();
         } else {
             fireWiigeeButtonEvent(TRAIN_BUTTON);
@@ -286,7 +320,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     }
 
     public void onShuffleBtnClicked(View v) {
-        if(!isTraining) {
+        if (!isTraining) {
             boolean isEnabled = ((ToggleButton) v).isChecked();
             commManager.sendShuffle(isEnabled);
         } else {
@@ -295,7 +329,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     }
 
     public void onVolumeUpBtnClicked(View v) {
-        if(!isTraining) {
+        if (!isTraining) {
             commManager.sendVolumeUp();
         } else {
             fireWiigeeButtonEvent(CLOSE_GESTURE_BUTTON);
@@ -308,19 +342,19 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     @Override
     public void onUpdateMessage(String msg) {
         String[] splitMsg = msg.split(";");
-        if(splitMsg[0].equals("play")) {
+        if (splitMsg[0].equals("play")) {
             TextView infoTV = (TextView) findViewById(R.id.ctrl_info_tv);
             infoTV.setText(splitMsg[1]);
             ToggleButton btn = (ToggleButton) findViewById(R.id.btn_play_pause);
             btn.setChecked(true);
-        } else if(splitMsg[0].equals("shuffle")) {
+        } else if (splitMsg[0].equals("shuffle")) {
             boolean isEnabled = splitMsg[1].equals("1");
             ToggleButton btn = (ToggleButton) findViewById(R.id.ctrl_shuffle);
             btn.setChecked(isEnabled);
-        } else if(splitMsg[0].equals("pause")) {
+        } else if (splitMsg[0].equals("pause")) {
             ToggleButton btn = (ToggleButton) findViewById(R.id.btn_play_pause);
             btn.setChecked(false);
-        } else if(splitMsg[0].equals("resume")) {
+        } else if (splitMsg[0].equals("resume")) {
             ToggleButton btn = (ToggleButton) findViewById(R.id.btn_play_pause);
             btn.setChecked(true);
         }
@@ -329,15 +363,15 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     @Override
     public void onDataMessage(String msg) {
         String[] splitMsg = msg.split(";");
-        if(splitMsg[0].equals("playlist")) {
+        if (splitMsg[0].equals("playlist")) {
             pagerAdapter.setData(splitMsg, 0);
-        } else if(splitMsg[0].equals("album")) {
+        } else if (splitMsg[0].equals("album")) {
             pagerAdapter.setData(splitMsg, 1);
-        } else if(splitMsg[0].equals("song")) {
+        } else if (splitMsg[0].equals("song")) {
             pagerAdapter.setData(splitMsg, 2);
-        } else if(splitMsg[0].equals("artist")) {
+        } else if (splitMsg[0].equals("artist")) {
             pagerAdapter.setData(splitMsg, 3);
-        } else if(splitMsg[0].equals("category")) {
+        } else if (splitMsg[0].equals("category")) {
             pagerAdapter.setData(splitMsg, 4);
         }
     }
@@ -356,7 +390,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     @Override
     public void onGestureNamed(String msg) {
         String[] split = msg.split(";");
-        if(split.length == 2) {
+        if (split.length == 2) {
             Log.d("MainActivity", "Gesture " + split[0] + " was named: " + split[1]);
         }
         int id = Integer.parseInt(split[0]);
@@ -379,13 +413,13 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         try {
             initSpeech();
             Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
             intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getApplication().getPackageName());
             intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1000);
             intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
             speechRecognizer.startListening(intent);
             setListeningButtonChecked(true);
-        } catch(Exception ex) {
+        } catch (Exception ex) {
             Log.d("MainActivity", "Bei der SpeechRecognizer Initialisierung ist ein Fehler aufgetreten");
         }
     }
@@ -419,13 +453,13 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     public void processVoiceCommands(String... voiceCommands) {
         String s = voiceCommands[0].toLowerCase();
         Log.d("VRListener", "Recorded string: " + s);
-        if(s.contains("bitte")) { // politeness keyword
+        if (s.contains("bitte")) { // politeness keyword
             commManager.sendTextCommand(s);
         } else {
             Log.d("VoiceRecognition", "Most likely no valid command - does not contain a polite keyword");
         }
         // always restart the listening service at the end if not in ambient mode
-        if(!isAmbient()) {
+        if (!isAmbient()) {
             restartListeningService();
         }
     }
@@ -433,7 +467,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     @Override
     public void restartListeningService() {
         stopListening();
-        if(!isAmbient()) {
+        if (!isAmbient()) {
             startListening();
         }
     }
@@ -480,7 +514,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
                 ToggleButton btn = (ToggleButton) findViewById(R.id.ctrl_shuffle);
                 btn.setChecked(!btn.isChecked());
                 onShuffleBtnClicked(btn);
-                Log.d("MainActivity", "Everyday I'm Shuffling");
+//                Log.d("MainActivity", "Everyday I'm Shuffling");
             }
         });
         gestureMap.put(4, new GestureCommand() {
@@ -505,11 +539,11 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     private void initGesturesFromFile() {
         Log.d("MainActivity", "ExternalStorageDirectory: " + Environment.getExternalStorageDirectory());
         List<String> fileNames = new ArrayList<String>(Arrays.asList(FileIO.getAllFileNames()));
-        if(fileNames == null) return;
+        if (fileNames == null) return;
 
         Collections.sort(fileNames);
         String gestureName = "";
-        for(String s: fileNames) {
+        for (String s : fileNames) {
             Log.d("MainActivity", "Filename: " + s);
             gestureName = s.replace(".txt", "");
             aWiigee.getDevice().loadGesture(gestureName);
@@ -519,7 +553,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     @Override
     public void gestureReceived(GestureEvent event) {
         Log.d("AndroidWiigee", "received event: " + event.isValid() + "; id: " + event.getId());
-        if(event.isValid() && event.getProbability() >= 0.99) {
+        if (event.isValid() && event.getProbability() >= 0.99) {
             Log.d("AndroidWiigee", "Accepted Event");
             int id = event.getId();
             if (gestureMap.containsKey(id)) {
@@ -554,7 +588,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     public void gestureTrained(GestureTrainedEvent event) {
         Log.d("MainActivity", "Gesture Trained! Waiting for a name...");
         int id = event.getID();
-        commManager.sendGestureTrained(""+id);
+        commManager.sendGestureTrained("" + id);
     }
 
     public void fireWiigeeButtonEvent(int buttonType) {
@@ -562,13 +596,13 @@ public class MainActivity extends WearableActivity implements CommunicationManag
             case TRAIN_BUTTON:
                 trainButtonDown = !trainButtonDown;
                 setGestureButtonChecked(trainButtonDown);
-                if(trainButtonDown) aWiigee.getDevice().fireButtonPressedEvent(buttonType);
+                if (trainButtonDown) aWiigee.getDevice().fireButtonPressedEvent(buttonType);
                 else aWiigee.getDevice().fireButtonReleasedEvent(buttonType);
                 break;
             case RECOGNITION_BUTTON:
                 recognitionButtonDown = !recognitionButtonDown;
                 setGestureButtonChecked(recognitionButtonDown);
-                if(recognitionButtonDown) aWiigee.getDevice().fireButtonPressedEvent(buttonType);
+                if (recognitionButtonDown) aWiigee.getDevice().fireButtonPressedEvent(buttonType);
                 else aWiigee.getDevice().fireButtonReleasedEvent(buttonType);
                 break;
             case CLOSE_GESTURE_BUTTON:
@@ -589,7 +623,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if(event.sensor.getType() == Sensor.TYPE_GAME_ROTATION_VECTOR) {
+        if (event.sensor.getType() == Sensor.TYPE_GAME_ROTATION_VECTOR) {
 
             // Convert the rotation-vector to a 4x4 matrix.
             SensorManager.getRotationMatrixFromVector(mRotationMatrixFromVector, event.values);
@@ -603,20 +637,22 @@ public class MainActivity extends WearableActivity implements CommunicationManag
             orientationVals[1] = (float) Math.toDegrees(orientationVals[1]);
             orientationVals[2] = (float) Math.toDegrees(orientationVals[2]);
 
-            if(orientationVals[1] < pitchThreshold && orientationVals[1] < minPitch) {
+            if (orientationVals[1] < pitchThreshold && orientationVals[1] < minPitch) {
                 minPitch = orientationVals[1];
             }
 
 
-            if(orientationVals[1] < pitchThreshold && !pitchReachedBefore) {
+            if (orientationVals[1] < pitchThreshold && !pitchReachedBefore) {
                 pitchReachedBefore = true;
-                if(!trainButtonDown && !recognitionButtonDown && !isRecordingGesture) {
+                if (!trainButtonDown && !recognitionButtonDown && !isRecordingGesture) {
+//                    isCountdown = true;
                     vibrator.vibrate(gestureWarmupPattern, -1);
                     gestureHandler.postDelayed(gestureRunnable, gestureRecognitionStartTime);
                 }
-            } else if(orientationVals[1] > pitchThreshold && pitchReachedBefore) {
+            } else if (orientationVals[1] > pitchThreshold && pitchReachedBefore) {
                 pitchReachedBefore = false;
-                if(isTraining) {
+//                isCountdown = false;
+                if (isTraining) {
                     //saveMinPitch();
                 }
             }
@@ -630,8 +666,27 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     private void saveMinPitch() {
         String fileName = "minPitchValues";
-        FileIO.writeToFile(minPitch+"\r\n", fileName);
+        FileIO.writeToFile(minPitch + "\r\n", fileName);
         minPitch = 0f;
     }
 
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client.connect();
+        Action viewAction = Action.newAction(
+                Action.TYPE_VIEW, // TODO: choose an action type.
+                "Main Page", // TODO: Define a title for the content shown.
+                // TODO: If you have web page content that matches this app activity's content,
+                // make sure this auto-generated web page URL is correct.
+                // Otherwise, set the URL to null.
+                Uri.parse("http://host/path"),
+                // TODO: Make sure this auto-generated app URL is correct.
+                Uri.parse("android-app://com.hci.sroettering.spotifyrc/http/host/path")
+        );
+        AppIndex.AppIndexApi.start(client, viewAction);
+    }
 }

@@ -41,7 +41,7 @@ public class DirectionalEquivalenceFilter extends Filter {
 	}
 	
 	public void reset() {
-		this.sensivity=0.2;
+		this.sensivity=0.25; // default 0.2
 		this.reference = new double[] {0.0, 0.0, 0.0};
 	}
 	

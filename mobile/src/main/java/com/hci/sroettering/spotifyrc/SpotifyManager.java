@@ -281,6 +281,11 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
         options.put(SpotifyService.LIMIT, pagerLimit);
         options.put(SpotifyService.OFFSET, offset);
 
+        // ArtistsCursorPager seems to contain duplicates
+        // Since we are filtering out dupes, we need to adjust
+        // the exit condition of the recursion
+        final int curNumArtists = ldc.getArtists().size();
+
         spotify.getFollowedArtists(options, new Callback<ArtistsCursorPager>() {
             @Override
             public void success(ArtistsCursorPager artistCursorPager, Response response) {
@@ -288,8 +293,8 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
                 ((MainActivity) mContext).updateData(ldc.getArtists(), 3);
                 //updateWatchData();
                 artistTotal = artistCursorPager.artists.total;
-                //Log.d("SpotifyManager", "total: " + artistTotal + "; offset: " + offset);
-                if (ldc.getArtists().size() < artistTotal) {
+                Log.d("SpotifyManager", "total: " + artistTotal + "; offset: " + offset + "; ldc: " + ldc.getArtists().size());
+                if (ldc.getArtists().size() != curNumArtists) {
                     retrieveArtists(offset + pagerLimit);
                 } else {
                     Log.d("SpotifyManager", "Initialized Saved Artists");

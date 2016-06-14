@@ -64,8 +64,9 @@ public class Device {
 
     public Device(boolean autofiltering) {
         if (autofiltering) {
+            this.addAccelerationFilter(new HighPassFilter());
             this.addAccelerationFilter(new IdleStateFilter());
-            this.addAccelerationFilter(new MotionDetectFilter(this));
+            //this.addAccelerationFilter(new MotionDetectFilter(this));
             this.addAccelerationFilter(new DirectionalEquivalenceFilter());
         }
         this.addAccelerationListener(this.processingunit);

@@ -165,7 +165,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
                 SensorManager.SENSOR_DELAY_NORMAL);
         mSensorManager.registerListener(aWiigee.getDevice(),
                 mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-                SensorManager.SENSOR_DELAY_GAME);
+                SensorManager.SENSOR_DELAY_FASTEST);
         try {
             aWiigee.getDevice().setAccelerationEnabled(true);
         } catch (IOException e) {
@@ -547,7 +547,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     @Override
     public void gestureTrained(GestureTrainedEvent event) {
-        Log.d("MainActivity", "Gesture Trained! Waiting for a name...");
+        Log.d("MainActivity", "Gesture (" + event.getID() + ") Trained! Waiting for a name...");
         int id = event.getID();
         commManager.sendGestureTrained(""+id);
     }
@@ -580,7 +580,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     private float[] mRotationMatrix = new float[16];
     private float[] orientationVals = new float[3];
     private float[] oldOrientationVals = new float[]{0, 0, 0};
-    private float pitchThreshold = -75f;
+    private float pitchThreshold = -70f;
     private boolean pitchReachedBefore = false;
 
     @Override

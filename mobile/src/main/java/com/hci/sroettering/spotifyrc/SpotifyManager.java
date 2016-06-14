@@ -814,12 +814,18 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
             spotifyData[2] = tempList;
         }
 
+        /*
+         * This method actually adds the artists to the current list
+         * as opposed to the others which set the list completely new.
+         */
         public void setArtists(List<Artist> list) {
-            artists.addAll(list);
             ArrayList<SpotifyItem> tempList = new ArrayList<>();
-            for(Artist artist: artists) {
-                tempList.add(new SpotifyItem(artist));
-                retrieveArtistTopTracks(artist);
+            for(Artist artist: list) {
+                if(!isDuplicateArtist(artist)) {
+                    artists.add(artist);
+                    tempList.add(new SpotifyItem(artist));
+                    retrieveArtistTopTracks(artist);
+                }
             }
             spotifyData[3] = tempList;
         }
@@ -934,6 +940,13 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
                     Log.d("Spotify", "Error while retrieving playlists for category: " + category.name + "; " + error.getMessage());
                 }
             });
+        }
+
+        private boolean isDuplicateArtist(Artist artist) {
+            for(Artist a: artists) {
+                if(a.id.equals(artist.id)) return true;
+            }
+            return false;
         }
 
     }

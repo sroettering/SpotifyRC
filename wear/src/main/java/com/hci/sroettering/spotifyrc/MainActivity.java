@@ -61,8 +61,8 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     private HashMap<Integer, GestureCommand> gestureMap;
     private Handler gestureHandler;
     private Runnable gestureRunnable;
-    private final long gestureRecognitionRunTime = 2000;
     private final long gestureRecognitionStartTime = 2000;
+    private final long gestureRecognitionRunTime = 750;
     private boolean isTraining = false;
 //    private boolean isCountdown;
     private boolean isRecordingGesture;
@@ -498,9 +498,10 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         gestureMap.put(5, new GestureCommand() { // shuffle
             @Override
             public void execute() {
-                ToggleButton btn = (ToggleButton) findViewById(R.id.ctrl_shuffle);
-                btn.setChecked(!btn.isChecked());
-                onShuffleBtnClicked(btn);
+                // This shall function as a "do nothing gesture"
+//                ToggleButton btn = (ToggleButton) findViewById(R.id.ctrl_shuffle);
+//                btn.setChecked(!btn.isChecked());
+//                onShuffleBtnClicked(btn);
 //                Log.d("MainActivity", "Everyday I'm Shuffling");
             }
         });
@@ -526,16 +527,17 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         }
     }
 
-    private final double probThreshold = 0.97;
+    //private final double probThreshold = 0.95;
+    private final double[] probThresholds = {0.98, 0.90, 0.95, 0.95, 0.95, 0.98};
 
     @Override
     public void gestureReceived(GestureEvent event) {
-        Log.d("AndroidWiigee", "received event: " + event.isValid() + "; id: " + event.getId());
-        Toast.makeText(getApplicationContext(), "Gesture id: " + event.getId() + "\nProbability: " + event.getProbability(),
+        int id = event.getId();
+        Log.d("AndroidWiigee", "received event: " + event.isValid() + "; id: " + id);
+        Toast.makeText(getApplicationContext(), "Gesture id: " + id + "\nProbability: " + event.getProbability(),
                 Toast.LENGTH_LONG).show();
-        if (event.isValid() && event.getProbability() >= probThreshold) {
+        if (event.isValid() && event.getProbability() >= probThresholds[id]) {
             Log.d("AndroidWiigee", "Accepted Event");
-            int id = event.getId();
             if (gestureMap.containsKey(id)) {
                 GestureCommand cmd = gestureMap.get(id);
                 if (cmd != null) {

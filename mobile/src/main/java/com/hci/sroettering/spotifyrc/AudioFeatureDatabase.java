@@ -51,7 +51,7 @@ public class AudioFeatureDatabase {
             maxValues.put(featureNames[i], -1f);
         }
         minValues.put(featureNames[featureNames.length-1], -100f); // loudness is measured in db
-        maxValues.put(featureNames[featureNames.length-1], 0f);
+        maxValues.put(featureNames[featureNames.length - 1], 0f);
     }
 
     public float getFeatureForID(String type, String id) {
@@ -72,18 +72,33 @@ public class AudioFeatureDatabase {
     }
 
     public List<TrackSimple> getTracksWithFeature(String type, float multiplier) {
+        List<TrackSimple> tracksInRange = new ArrayList<>();
+        float tolerance = 0f;
+        // to guarantee that new tracks will be played, the tolerance will be upped if no songs were found
+        while(tracksInRange.size() < 5 && tolerance < 1) {
+            tracksInRange = searchForTracksWithFeature(type, multiplier, tolerance += 0.01f);
+        }
+
+        return tracksInRange;
+    }
+
+    private List<TrackSimple> searchForTracksWithFeature(String type, float multiplier, float tol) {
         float maxValue = maxValues.get(type);
         float minValue = minValues.get(type);
         float currentValue = mSpotifyManager.getAudioFeatureForCurrentTrack(type);
+        float distance = Math.abs(maxValue - minValue);
         float newValue = 0f;
-        float tolerance = 0.075f;
+        float tolerance = tol;
 
-        // scale difference between either top or bottom limit with multiplier and add to current value
+        // scale difference between either top or bottom limit from currentValue with multiplier and add to current value
         if(multiplier < 0) {
             newValue = (currentValue - minValue) * multiplier + currentValue;
         } else {
             newValue = (maxValue - currentValue) * multiplier + currentValue;
         }
+        Log.d("AFD", "Max Value for " + type + ": " + maxValue);
+        Log.d("AFD", "Current Value for " + type + ": " + currentValue);
+        Log.d("AFD", "New Value for " + type + ": " + newValue);
 
         float value = 0f;
         List<TrackSimple> tracksInRange = new ArrayList<>();
@@ -102,10 +117,12 @@ public class AudioFeatureDatabase {
             }
 
             // find songs with desired feature with value=newValue +/- tolerance [%]
-            if(value > newValue - newValue*tolerance && value < newValue + newValue*tolerance) {
+            if(value > newValue - distance*tolerance && value < newValue + distance*tolerance) {
                 tracksInRange.add(trackCollection.get(id));
             }
         }
+
+        Log.d("AFD", "number of selected tracks: " + tracksInRange.size());
         return tracksInRange;
     }
 
@@ -303,7 +320,7 @@ public class AudioFeatureDatabase {
             aft.danceability = Float.parseFloat(cells[6]);
             itemCount++;
 
-            audioFeatures.put(aft.id, aft);
+            addAudioFeature(aft);
         }
 
         Log.d("AudioFeatureDatabase", "finished. loaded " + itemCount + " features from file");

@@ -41,8 +41,8 @@ import kaaes.spotify.webapi.android.models.AudioFeaturesTracks;
  * |          |no
  * |          |
  * | no +-----v-----+ yes    +-----------------+
- * +----+fuzzy      +-------->convert to       |
- *      |keywords?  |        |fuzzy command    |
+ * +----+casual     +-------->convert to       |
+ *      |keywords?  |        |casual command   |
  *      +-----------+        +-----------------+
  *
  *
@@ -177,7 +177,7 @@ public class VoiceCommandConverter {
         // 3.1 audio feature is directly mentioned
         KeywordDictionary.tokenizeCasualCommand(command);
         if(command.hasCasualAudioFeatureToken()) {
-            Log.d("VCC", "text contains casual command");
+            Log.d("VCC", "text contains AudioFeature Token");
             command.resultingCommand += "casual;" + command.getCasualAudioFeatureToken().keyword + ";";
 
             float multiplier = 0f;
@@ -200,6 +200,8 @@ public class VoiceCommandConverter {
                     multiplier *= -1;
                 }
                 command.resultingCommand += "" + multiplier;
+            } else { // not a valid casual command without directionToken, reset the command
+                command.resultingCommand = "";
             }
 
         } else {

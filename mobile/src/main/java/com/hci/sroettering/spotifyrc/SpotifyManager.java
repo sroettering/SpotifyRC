@@ -534,8 +534,10 @@ public class SpotifyManager implements PlayerNotificationCallback, ConnectionSta
 
     public void loadSongsByFeature(String type, float mult) {
         List<TrackSimple> tracks = ldc.getAudioFeatureDatabase().getTracksWithFeature(type, mult);
-        Collections.shuffle(tracks);
-        play(tracks);
+        if(!tracks.isEmpty()) {
+            Collections.shuffle(tracks);
+            play(tracks);
+        }
     }
 
     // retrieve playlist tracks from spotify

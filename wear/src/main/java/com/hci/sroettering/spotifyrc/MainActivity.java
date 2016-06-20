@@ -249,6 +249,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     @Override
     public void onExitAmbient() {
+        isConverting = false; // reset needed in case no handheld is connected
         restartListeningService();
         updateDisplay();
         setScreenAlwaysOn(true);

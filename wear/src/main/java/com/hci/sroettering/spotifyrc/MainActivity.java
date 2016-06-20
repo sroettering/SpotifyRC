@@ -8,6 +8,7 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.PowerManager;
 import android.os.Vibrator;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -22,7 +23,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
-import com.google.android.gms.common.api.GoogleApiClient;
 import com.hci.sroettering.spotifyrc.wiigee.control.AndroidWiigee;
 import com.hci.sroettering.spotifyrc.wiigee.event.AccelerationEvent;
 import com.hci.sroettering.spotifyrc.wiigee.event.AccelerationListener;
@@ -51,9 +51,12 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     private CommunicationManager commManager;
 
     private SpeechRecognizer speechRecognizer;
-    private final long activeTimeMax = 15000; // ms
+    private final long activeTimeMax = 20000; // ms
     private Handler ambientHandler;
     private Runnable ambientRunnable;
+
+    private PowerManager powerManager;
+    private PowerManager.WakeLock wakeLock;
 
     private SensorManager mSensorManager;
     private AndroidWiigee aWiigee;
@@ -77,11 +80,6 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     private boolean trainButtonDown;
     private boolean recognitionButtonDown;
-    /**
-     * ATTENTION: This was auto-generated to implement the App Indexing API.
-     * See https://g.co/AppIndexing/AndroidStudio for more information.
-     */
-    private GoogleApiClient client;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -116,6 +114,11 @@ public class MainActivity extends WearableActivity implements CommunicationManag
                 setScreenAlwaysOn(false);
             }
         };
+
+        // Acquire WakeLock to keep CPU active
+        powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "WakeUp");
+        wakeLock.acquire();
 
         // Gesture Control
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
@@ -166,6 +169,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         };
 
         vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+        setScreenAlwaysOn(true);
     }
 
     @Override
@@ -219,6 +223,9 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     @Override
     public void onDestroy() {
         stopListening();
+        if(wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
+        }
         super.onDestroy();
     }
 
@@ -425,8 +432,8 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     // IVoiceControl
     @Override
-    public void processVoiceCommands(String... voiceCommands) {
-        String s = voiceCommands[0].toLowerCase();
+    public void processVoiceCommand(String voiceCommand) {
+        String s = voiceCommand.toLowerCase();
         Log.d("VRListener", "Recorded string: " + s);
         if (s.contains("bitte")) { // politeness keyword
             commManager.sendTextCommand(s);
@@ -621,6 +628,9 @@ public class MainActivity extends WearableActivity implements CommunicationManag
                 minPitch = orientationVals[1];
             }
 
+//            if(isAmbient()) {
+//                Log.d("MainAcitivity", "SensorEvent in AmbientMode");
+//            }
 
             if (orientationVals[1] < pitchThreshold && !pitchReachedBefore) {
                 pitchReachedBefore = true;

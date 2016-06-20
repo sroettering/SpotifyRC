@@ -5,7 +5,7 @@ package com.hci.sroettering.spotifyrc;
  */
 public interface IVoiceControl {
 
-    public void processVoiceCommands(String... voiceCommands);
+    public void processVoiceCommand(String voiceCommand);
 
     public void restartListeningService();
 

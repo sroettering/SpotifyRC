@@ -37,21 +37,16 @@ public class VoiceRecognitionListener implements RecognitionListener {
         listener = voiceControl;
     }
 
-    public void processVoiceCommands(String... voiceCommands) {
+    public void processVoiceCommand(String voiceCommand) {
         if(listener != null) {
-            listener.processVoiceCommands(voiceCommands);
+            listener.processVoiceCommand(voiceCommand);
         }
     }
 
     @Override
     public void onResults(Bundle results) {
-        ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-        String[] commands = new String[matches.size()];
-        for (String command : matches) {
-            System.out.println(command);
-        }
-        commands = matches.toArray(commands);
-        processVoiceCommands(commands);
+//        ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+//        processVoiceCommand(matches.get(0));
     }
 
     @Override
@@ -92,7 +87,12 @@ public class VoiceRecognitionListener implements RecognitionListener {
 
     @Override
     public void onPartialResults(Bundle partialResults) {
-
+        //Log.d("VRListener", "onPartialResults: " + partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION).get(0));
+        ArrayList<String> results = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+        String command = results.get(0);
+        if(command.endsWith("bitte")) {
+            processVoiceCommand(command);
+        }
     }
 
     @Override

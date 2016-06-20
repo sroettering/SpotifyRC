@@ -51,6 +51,8 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     private CommunicationManager commManager;
 
     private SpeechRecognizer speechRecognizer;
+    private ArrayList<String> commandBuffer;
+    private boolean isConverting;
     private final long activeTimeMax = 20000; // ms
     private Handler ambientHandler;
     private Runnable ambientRunnable;
@@ -105,6 +107,8 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
         // Voice Control
         VoiceRecognitionListener.getInstance().setListener(this);
+        commandBuffer = new ArrayList<>();
+        isConverting = false;
 
         // Handler for keeping the screen on for a fixed time
         ambientHandler = new Handler();
@@ -367,6 +371,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         } else {
             vibrator.vibrate(500);
         }
+        convertNextVoiceCommand();
     }
 
     @Override
@@ -430,16 +435,27 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         }
     }
 
+    private void convertNextVoiceCommand() {
+        if(commandBuffer.size() > 0) {
+            isConverting = true;
+            String nextCommand = commandBuffer.remove(0); // retrieves and deletes the first command
+            commManager.sendTextCommand(nextCommand);
+            if(commandBuffer.isEmpty()) {
+                isConverting = false;
+            }
+        } else {
+            isConverting = false;
+        }
+    }
+
     // IVoiceControl
     @Override
     public void processVoiceCommand(String voiceCommand) {
         String s = voiceCommand.toLowerCase();
         Log.d("VRListener", "Recorded string: " + s);
-        if (s.contains("bitte")) { // politeness keyword
-            commManager.sendTextCommand(s);
-        } else {
-            Log.d("VoiceRecognition", "Most likely no valid command - does not contain a polite keyword");
-        }
+        commandBuffer.add(s); // adds the new command to the end of the list
+        if(!isConverting) convertNextVoiceCommand(); // start converting the commands on the handheld
+
         // always restart the listening service at the end if not in ambient mode
         if (!isAmbient()) {
             restartListeningService();

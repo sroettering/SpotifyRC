@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/expinfo_title"
+        android:id="@+id/textView"
+        android:textColor="@color/icons"
+        android:layout_gravity="center_horizontal"
+        android:textSize="24dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="6dp"
+        android:gravity="center_vertical" />
+
+    <EditText
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/expinfo_subjid"
+        android:textSize="16dp"
+        android:hint="SubjectID"
+        android:layout_marginLeft="12dp"
+        android:layout_marginRight="12dp"
+        android:textColorHint="@color/primary_dark"
+        android:textColor="@color/icons" />
+
+    <EditText
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/expinfo_scenid"
+        android:textSize="16dp"
+        android:hint="ScenarioID"
+        android:layout_marginLeft="12dp"
+        android:layout_marginRight="12dp"
+        android:textColorHint="@color/primary_dark"
+        android:textColor="@color/icons" />
+
+</LinearLayout>

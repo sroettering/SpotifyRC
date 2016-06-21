@@ -1,6 +1,5 @@
 package com.hci.sroettering.spotifyrc;
 
-import android.app.DialogFragment;
 import android.content.Intent;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.view.ViewPager;
@@ -21,7 +20,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity implements PagerListFragment.OnFragmentInteractionListener,
-        CommunicationManager.MessageListener, GestureNameDialog.NoticeDialogListener {
+        CommunicationManager.MessageListener, GestureNameDialog.NoticeDialogListener,
+        ExperimentInfoDialog.ExperimentDialogListener {
 
     private SpotifyManager mSpotifyManager;
     private ViewPager pager;
@@ -262,7 +262,7 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
 
     @Override
     public void onSensorMessage(String msg) {
-        // TODO
+        // not used
     }
 
     @Override
@@ -289,6 +289,8 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
         dialog.show(getFragmentManager(), "GestureNameDialog");
     }
 
+    // Gesture Training Dialog
+
     @Override
     public void onDialogPositiveClick(GestureNameDialog dialog) {
         EditText nameField = (EditText) dialog.getDialog().findViewById(R.id.gnd_name);
@@ -301,6 +303,31 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
 
     @Override
     public void onDialogNegativeClick(GestureNameDialog dialog) {
+        dialog.getDialog().cancel();
+    }
+
+
+    // Experiment Dialog
+
+    private int subjectID = -1;
+    private int scenarioID = -1;
+
+    public void openExperimentDialog(View view) {
+        ExperimentInfoDialog dialog = ExperimentInfoDialog.newInstance(subjectID+"", scenarioID+"");
+        dialog.show(getFragmentManager(), "ExperimentInfoDialog");
+    }
+
+    @Override
+    public void onDialogPositiveClick(ExperimentInfoDialog dialog) {
+        EditText subjIDField = (EditText) dialog.getDialog().findViewById(R.id.expinfo_subjid);
+        EditText scenIDField = (EditText) dialog.getDialog().findViewById(R.id.expinfo_scenid);
+        subjectID = Integer.parseInt(subjIDField.getText().toString());
+        scenarioID = Integer.parseInt(scenIDField.getText().toString());
+        commManager.sendExperimentInfo(""+subjectID, ""+scenarioID);
+    }
+
+    @Override
+    public void onDialogNegativeClick(ExperimentInfoDialog dialog) {
         dialog.getDialog().cancel();
     }
 
@@ -317,4 +344,5 @@ public class MainActivity extends AppCompatActivity implements PagerListFragment
         );
         return duration;
     }
+
 }

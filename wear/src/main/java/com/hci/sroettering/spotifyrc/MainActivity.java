@@ -282,10 +282,20 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     // onClick Methods
 
     public void onPrevBtnClicked(View v) {
+        ExperimentLogger.log(new InputEvent("Touch input: previous song"));
+        prev(v);
+    }
+
+    private void prev(View v) {
         commManager.sendPrev();
     }
 
     public void onPlayBtnClicked(View v) {
+        ExperimentLogger.log(new InputEvent("Touch input: playbutton"));
+        play(v);
+    }
+
+    private void play(View v) {
         ToggleButton btn = (ToggleButton) v;
         if (btn.isChecked()) {
             commManager.sendResume();
@@ -295,32 +305,53 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     }
 
     public void onNextBtnClicked(View v) {
+        ExperimentLogger.log(new InputEvent("Touch input: next song"));
+        next(v);
+    }
+
+    private void next(View v) {
         commManager.sendNext();
     }
 
     public void onVolumeDownBtnClicked(View v) {
         if (!isTraining) {
-            commManager.sendVolumeDown();
+            ExperimentLogger.log(new InputEvent("Touch input: volume down"));
+            volumeDown(v);
         } else {
             fireWiigeeButtonEvent(TRAIN_BUTTON);
         }
     }
 
+    private void volumeDown(View v) {
+        commManager.sendVolumeDown();
+    }
+
     public void onShuffleBtnClicked(View v) {
         if (!isTraining) {
             boolean isEnabled = ((ToggleButton) v).isChecked();
-            commManager.sendShuffle(isEnabled);
+            ExperimentLogger.log(new InputEvent("Touch input: shuffle " + isEnabled));
+            shuffle(v);
         } else {
             fireWiigeeButtonEvent(RECOGNITION_BUTTON);
         }
     }
 
+    private void shuffle(View v) {
+        boolean isEnabled = ((ToggleButton) v).isChecked();
+        commManager.sendShuffle(isEnabled);
+    }
+
     public void onVolumeUpBtnClicked(View v) {
         if (!isTraining) {
-            commManager.sendVolumeUp();
+            ExperimentLogger.log(new InputEvent("Touch input: volume up"));
+            volumeUp(v);
         } else {
             fireWiigeeButtonEvent(CLOSE_GESTURE_BUTTON);
         }
+    }
+
+    private void volumeUp(View v) {
+        commManager.sendVolumeUp();
     }
 
 
@@ -367,6 +398,8 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     public void onTextCommandMessage(String msg) {
         Toast toast = Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG);
         toast.show();
+        String logString = "Speech input: " + msg;
+        ExperimentLogger.log(new InputEvent(logString));
         if (msg.contains("not recognized")) {
             vibrator.vibrate(new long[]{0, 250, 250, 500}, -1);
         } else {
@@ -380,9 +413,21 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         String[] split = msg.split(";");
         if (split.length == 2) {
             Log.d("MainActivity", "Gesture " + split[0] + " was named: " + split[1]);
+            int id = Integer.parseInt(split[0]);
+            aWiigee.getDevice().saveGesture(id, split[1]);
         }
-        int id = Integer.parseInt(split[0]);
-        aWiigee.getDevice().saveGesture(id, split[1]);
+    }
+
+    @Override
+    public void onExperimentInfo(String msg) {
+        String[] split = msg.split(";");
+        if(split.length == 2) {
+            int subjID = Integer.parseInt(split[0]);
+            int scenID = Integer.parseInt(split[1]);
+            if(subjID != -1) ExperimentLogger.subjectID = subjID;
+            if(scenID != -1) ExperimentLogger.scenarioID = scenID;
+            ExperimentLogger.triggerFileLogging(); // log already saved events to file
+        }
     }
 
 
@@ -440,6 +485,8 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         if(commandBuffer.size() > 0) {
             isConverting = true;
             String nextCommand = commandBuffer.remove(0); // retrieves and deletes the first command
+            String logString = "Speech input, converting: " + nextCommand;
+            ExperimentLogger.log(new InputEvent(logString));
             commManager.sendTextCommand(nextCommand);
             if(commandBuffer.isEmpty()) {
                 isConverting = false;
@@ -492,31 +539,31 @@ public class MainActivity extends WearableActivity implements CommunicationManag
             public void execute() {
                 ToggleButton btn = (ToggleButton) findViewById(R.id.btn_play_pause);
                 btn.setChecked(!btn.isChecked());
-                onPlayBtnClicked(btn);
+                play(btn);
             }
         });
         gestureMap.put(1, new GestureCommand() { // previous song
             @Override
             public void execute() {
-                onPrevBtnClicked(findViewById(R.id.btn_prev));
+                prev(findViewById(R.id.btn_prev));
             }
         });
         gestureMap.put(2, new GestureCommand() { // next song
             @Override
             public void execute() {
-                onNextBtnClicked(findViewById(R.id.btn_next));
+                next(findViewById(R.id.btn_next));
             }
         });
         gestureMap.put(3, new GestureCommand() { // volumeDown
             @Override
             public void execute() {
-                onVolumeDownBtnClicked(findViewById(R.id.ctrl_volume_down));
+                volumeDown(findViewById(R.id.ctrl_volume_down));
             }
         });
         gestureMap.put(4, new GestureCommand() {
             @Override
             public void execute() { // volumeUp
-                onVolumeUpBtnClicked(findViewById(R.id.ctrl_volume_up));
+                volumeUp(findViewById(R.id.ctrl_volume_up));
             }
         });
         gestureMap.put(5, new GestureCommand() { // shuffle
@@ -553,23 +600,29 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     //private final double probThreshold = 0.95;
     private final double[] probThresholds = {0.98, 0.90, 0.95, 0.95, 0.95, 0.98};
+    private final String[] gestureNames = {"Play-Pause", "previous", "next", "volume down", "volume up", "dummy"};
 
     @Override
     public void gestureReceived(GestureEvent event) {
         int id = event.getId();
+        String logString = "Gesture input: ";
         Log.d("AndroidWiigee", "received event: " + event.isValid() + "; id: " + id);
-        Toast.makeText(getApplicationContext(), "Gesture id: " + id + "\nProbability: " + event.getProbability(),
+        Toast.makeText(getApplicationContext(), "Gesture: " + gestureNames[id] + "\nProbability: " + event.getProbability(),
                 Toast.LENGTH_LONG).show();
         if (event.isValid() && event.getProbability() >= probThresholds[id]) {
             Log.d("AndroidWiigee", "Accepted Event");
             if (gestureMap.containsKey(id)) {
+                logString += "recognized as " + gestureNames[id] + " with p=" + event.getProbability();
                 GestureCommand cmd = gestureMap.get(id);
                 if (cmd != null) {
                     vibrator.vibrate(400);
                     cmd.execute();
                 }
             }
+        } else {
+            logString += "not recognized; closest match: " + gestureNames[id] + " with p=" + event.getProbability();
         }
+        ExperimentLogger.log(new InputEvent(logString));
     }
 
     @Override
@@ -655,6 +708,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 //                    isCountdown = true;
                     isRecordingGesture = true;
                     setScreenAlwaysOn(true); // prevent app from entering ambient mode while recording
+                    ExperimentLogger.log(new InputEvent("Gesture input: performed activation"));
                     vibrator.vibrate(gestureWarmupPattern, -1);
                     gestureHandler.postDelayed(gestureRunnable, gestureRecognitionStartTime);
                 }

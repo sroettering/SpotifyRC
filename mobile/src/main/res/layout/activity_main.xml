@@ -82,6 +82,17 @@
             android:onClick="onShuffleBtnClick"
             android:layout_centerVertical="true" />
 
+        <ImageButton
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:id="@+id/btn_expinfo"
+            android:layout_toEndOf="@+id/btn_next"
+            android:src="@drawable/material_block_24dp"
+            android:background="@color/primary"
+            android:layout_marginRight="6dp"
+            android:layout_centerVertical="true"
+            android:onClick="openExperimentDialog"/>
+
         <SeekBar
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

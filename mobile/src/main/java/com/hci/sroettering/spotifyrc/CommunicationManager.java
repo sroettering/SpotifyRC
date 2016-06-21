@@ -34,6 +34,7 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
     private final String dataPath = "/listData";
     private final String sensorPath = "/sensorData";
     private final String gestureTrainPath = "/gestureTrain";
+    private final String experimentInfoPath = "/experimentInfo";
     private GoogleApiClient mApiClient;
     private Context mContext;
     private List<MessageListener> listeners;
@@ -170,6 +171,11 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
     // send name for last trained gesture for filesaving purpose
     public void sendTrainedGestureName(String id, String name) {
         sendMessage(gestureTrainPath, id + ";" + name);
+    }
+
+    // send the subjectID and the scenarioID to the watch
+    public void sendExperimentInfo(String subjID, String scenID) {
+        sendMessage(experimentInfoPath, subjID + ";" + scenID);
     }
 
 

@@ -17,7 +17,7 @@ public class InputEvent {
 
     @Override
     public String toString() {
-        return date + ": " + message;
+        return date + ";" + message;
     }
 
 }

@@ -53,7 +53,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     private SpeechRecognizer speechRecognizer;
     private ArrayList<String> commandBuffer;
     private boolean isConverting;
-    private final long activeTimeMax = 20000; // ms
+    private final long activeTimeMax = 15000; // ms
     private Handler ambientHandler;
     private Runnable ambientRunnable;
 
@@ -282,7 +282,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     // onClick Methods
 
     public void onPrevBtnClicked(View v) {
-        ExperimentLogger.log(new InputEvent("Touch input: previous song"));
+        ExperimentLogger.log(new InputEvent("Touch;previous song"));
         prev(v);
     }
 
@@ -291,7 +291,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     }
 
     public void onPlayBtnClicked(View v) {
-        ExperimentLogger.log(new InputEvent("Touch input: playbutton"));
+        ExperimentLogger.log(new InputEvent("Touch;playbutton"));
         play(v);
     }
 
@@ -305,7 +305,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     }
 
     public void onNextBtnClicked(View v) {
-        ExperimentLogger.log(new InputEvent("Touch input: next song"));
+        ExperimentLogger.log(new InputEvent("Touch;next song"));
         next(v);
     }
 
@@ -315,7 +315,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     public void onVolumeDownBtnClicked(View v) {
         if (!isTraining) {
-            ExperimentLogger.log(new InputEvent("Touch input: volume down"));
+            ExperimentLogger.log(new InputEvent("Touch;volume down"));
             volumeDown(v);
         } else {
             fireWiigeeButtonEvent(TRAIN_BUTTON);
@@ -329,7 +329,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     public void onShuffleBtnClicked(View v) {
         if (!isTraining) {
             boolean isEnabled = ((ToggleButton) v).isChecked();
-            ExperimentLogger.log(new InputEvent("Touch input: shuffle " + isEnabled));
+            ExperimentLogger.log(new InputEvent("Touch;shuffle " + isEnabled));
             shuffle(v);
         } else {
             fireWiigeeButtonEvent(RECOGNITION_BUTTON);
@@ -343,7 +343,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     public void onVolumeUpBtnClicked(View v) {
         if (!isTraining) {
-            ExperimentLogger.log(new InputEvent("Touch input: volume up"));
+            ExperimentLogger.log(new InputEvent("Touch;volume up"));
             volumeUp(v);
         } else {
             fireWiigeeButtonEvent(CLOSE_GESTURE_BUTTON);
@@ -398,14 +398,14 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     public void onTextCommandMessage(String msg) {
         Toast toast = Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG);
         toast.show();
-        String logString = "Speech input: " + msg;
+        String logString = "Speech;" + msg;
         ExperimentLogger.log(new InputEvent(logString));
         if (msg.contains("not recognized")) {
             vibrator.vibrate(new long[]{0, 250, 250, 500}, -1);
         } else {
             vibrator.vibrate(500);
         }
-        convertNextVoiceCommand();
+//        convertNextVoiceCommand();
     }
 
     @Override
@@ -483,16 +483,16 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     private void convertNextVoiceCommand() {
         if(commandBuffer.size() > 0) {
-            isConverting = true;
+//            isConverting = true;
             String nextCommand = commandBuffer.remove(0); // retrieves and deletes the first command
-            String logString = "Speech input, converting: " + nextCommand;
+            String logString = "Speech;converting: " + nextCommand;
             ExperimentLogger.log(new InputEvent(logString));
             commManager.sendTextCommand(nextCommand);
-            if(commandBuffer.isEmpty()) {
-                isConverting = false;
-            }
+//            if(commandBuffer.isEmpty()) {
+//                isConverting = false;
+//            }
         } else {
-            isConverting = false;
+//            isConverting = false;
         }
     }
 
@@ -502,7 +502,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         String s = voiceCommand.toLowerCase();
         Log.d("VRListener", "Recorded string: " + s);
         commandBuffer.add(s); // adds the new command to the end of the list
-        if(!isConverting) convertNextVoiceCommand(); // start converting the commands on the handheld
+        /*if(!isConverting)*/ convertNextVoiceCommand(); // start converting the commands on the handheld
 
         // always restart the listening service at the end if not in ambient mode
         if (!isAmbient()) {
@@ -515,6 +515,8 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         stopListening();
         if (!isAmbient()) {
             startListening();
+            Toast toast = Toast.makeText(getApplicationContext(), "Sorry, hast du etwas gesagt?", Toast.LENGTH_SHORT);
+            toast.show();
         }
     }
 
@@ -605,7 +607,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     @Override
     public void gestureReceived(GestureEvent event) {
         int id = event.getId();
-        String logString = "Gesture input: ";
+        String logString = "Gesture;";
         Log.d("AndroidWiigee", "received event: " + event.isValid() + "; id: " + id);
         Toast.makeText(getApplicationContext(), "Gesture: " + gestureNames[id] + "\nProbability: " + event.getProbability(),
                 Toast.LENGTH_LONG).show();
@@ -620,7 +622,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
                 }
             }
         } else {
-            logString += "not recognized; closest match: " + gestureNames[id] + " with p=" + event.getProbability();
+            logString += "not recognized. closest match: " + gestureNames[id] + " with p=" + event.getProbability();
         }
         ExperimentLogger.log(new InputEvent(logString));
     }
@@ -708,7 +710,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 //                    isCountdown = true;
                     isRecordingGesture = true;
                     setScreenAlwaysOn(true); // prevent app from entering ambient mode while recording
-                    ExperimentLogger.log(new InputEvent("Gesture input: performed activation"));
+                    ExperimentLogger.log(new InputEvent("Gesture;performed activation"));
                     vibrator.vibrate(gestureWarmupPattern, -1);
                     gestureHandler.postDelayed(gestureRunnable, gestureRecognitionStartTime);
                 }

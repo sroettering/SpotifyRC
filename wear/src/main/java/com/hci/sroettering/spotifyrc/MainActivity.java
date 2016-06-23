@@ -238,6 +238,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
         super.onEnterAmbient(ambientDetails);
         Log.d("MainActivity", "Entering ambient mode");
         updateDisplay();
+        VoiceRecognitionListener.getInstance().hasRecorded = false;
         stopListening();
     }
 
@@ -396,6 +397,7 @@ public class MainActivity extends WearableActivity implements CommunicationManag
 
     @Override
     public void onTextCommandMessage(String msg) {
+        Log.d("MainActivity", "onTextCommandMessage: " + msg);
         Toast toast = Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG);
         toast.show();
         String logString = "Speech;" + msg;
@@ -514,9 +516,11 @@ public class MainActivity extends WearableActivity implements CommunicationManag
     public void restartListeningService() {
         stopListening();
         if (!isAmbient()) {
+            if(VoiceRecognitionListener.getInstance().hasRecorded) {
+                Toast toast = Toast.makeText(getApplicationContext(), "Sorry, hast du etwas gesagt?", Toast.LENGTH_SHORT);
+                toast.show();
+            }
             startListening();
-            Toast toast = Toast.makeText(getApplicationContext(), "Sorry, hast du etwas gesagt?", Toast.LENGTH_SHORT);
-            toast.show();
         }
     }
 

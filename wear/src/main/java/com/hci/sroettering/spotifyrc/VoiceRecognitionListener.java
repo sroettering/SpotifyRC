@@ -16,6 +16,8 @@ public class VoiceRecognitionListener implements RecognitionListener {
 
     private IVoiceControl listener; // Must run in main thread
 
+    public boolean hasRecorded;
+
     private String[] errorMessages = {
             "Unknown Error", "Network operation timed out", "Other network related errors",
             "Audio recording error", "Server sends error status", "Other client side errors",
@@ -24,7 +26,7 @@ public class VoiceRecognitionListener implements RecognitionListener {
     };
 
     // Singleton private constructor
-    private VoiceRecognitionListener() {};
+    private VoiceRecognitionListener() { hasRecorded = false; }
 
     public static VoiceRecognitionListener getInstance() {
         if(instance == null) {
@@ -47,11 +49,15 @@ public class VoiceRecognitionListener implements RecognitionListener {
     public void onResults(Bundle results) {
 //        ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
 //        processVoiceCommand(matches.get(0));
+        if(listener != null) {
+            listener.restartListeningService();
+        }
     }
 
     @Override
     public void onBeginningOfSpeech() {
         Log.d("VRListener", "Starting to listen");
+        hasRecorded = false;
     }
 
     @Override
@@ -62,12 +68,12 @@ public class VoiceRecognitionListener implements RecognitionListener {
 
     @Override
     public void onError(int error) {
+        if(error >= 0 && error <= 9)
+            Log.d("VRListener", "Got Error: " + errorMessages[error]);
         if (listener != null) {
             listener.onListeningError();
             listener.restartListeningService();
         }
-        if(error >= 0 && error <= 9)
-            Log.d("VRListener", "Got Error: " + errorMessages[error]);
     }
 
     @Override
@@ -91,7 +97,10 @@ public class VoiceRecognitionListener implements RecognitionListener {
         ArrayList<String> results = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
         String command = results.get(0);
         if(command.endsWith("bitte")) {
+            hasRecorded = false;
             processVoiceCommand(command);
+        } else {
+            hasRecorded = true;
         }
     }
 

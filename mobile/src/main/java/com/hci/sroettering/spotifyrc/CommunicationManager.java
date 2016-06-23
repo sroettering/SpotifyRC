@@ -180,6 +180,7 @@ public class CommunicationManager implements MessageApi.MessageListener, GoogleA
 
 
     private void sendMessage(final String path, final String text) {
+//        Log.d("CommManager", "sending message: " + text);
         new Thread(new Runnable() {
             @Override
             public void run() {
